@@ -49,6 +49,19 @@ const mealLabels: Record<MealType, string> = {
   snack: "Snack",
 };
 
+const TRAINING_ACTIVITIES = [
+  { value: "yoga", label: "Yoga", met: 3.0 },
+  { value: "pilates", label: "Pilates", met: 3.0 },
+  { value: "spaziergang", label: "Spaziergang", met: 3.0 },
+  { value: "tanzen", label: "Tanzen", met: 4.5 },
+  { value: "wandern", label: "Wandern", met: 5.3 },
+  { value: "radfahren", label: "Radfahren", met: 6.8 },
+  { value: "schwimmen", label: "Schwimmen", met: 6.0 },
+  { value: "krafttraining", label: "Krafttraining", met: 5.0 },
+  { value: "laufen", label: "Laufen", met: 8.3 },
+  { value: "hiit", label: "HIIT", met: 8.0 },
+];
+
 const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
   Jen: { calories: 1900, protein: 130, carbs: 190, fat: 60 },
@@ -69,6 +82,9 @@ const blankNote = {
   weight: "",
   training: false,
   training_notes: "",
+  training_activity: "yoga",
+  training_duration_min: "30",
+  training_kcal: "",
   water_intake: "",
   sleep_quality: "3",
   energy_level: "3",
@@ -380,6 +396,9 @@ export default function Home() {
             weight: note.weight?.toString() ?? "",
             training: note.training,
             training_notes: note.training_notes ?? "",
+            training_activity: note.training_activity ?? "yoga",
+            training_duration_min: note.training_duration_min?.toString() ?? "30",
+            training_kcal: note.training_kcal?.toString() ?? "",
             water_intake: note.water_intake?.toString() ?? "",
             sleep_quality: note.sleep_quality?.toString() ?? "3",
             energy_level: note.energy_level?.toString() ?? "3",
@@ -618,6 +637,9 @@ export default function Home() {
         weight: dailyNote.weight ? Number(dailyNote.weight) : null,
         training: dailyNote.training,
         training_notes: dailyNote.training_notes.trim() || null,
+        training_activity: dailyNote.training ? (dailyNote.training_activity || null) : null,
+        training_duration_min: dailyNote.training && dailyNote.training_duration_min ? Number(dailyNote.training_duration_min) : null,
+        training_kcal: dailyNote.training && dailyNote.training_kcal ? Number(dailyNote.training_kcal) : null,
         water_intake: dailyNote.water_intake ? Number(dailyNote.water_intake) : null,
         sleep_quality: dailyNote.sleep_quality ? Number(dailyNote.sleep_quality) : null,
         energy_level: dailyNote.energy_level ? Number(dailyNote.energy_level) : null,
@@ -754,8 +776,11 @@ export default function Home() {
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
                   <p className="serif text-[4.4rem] leading-none text-[var(--coral)]">
-                    {Math.max(activeProfile.calorie_goal - totals.calories, 0)}
+                    {Math.max(activeProfile.calorie_goal - totals.calories + (Number(dailyNote.training_kcal) || 0), 0)}
                   </p>
+                  {Number(dailyNote.training_kcal) > 0 && (
+                    <p className="mt-1 text-xs font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
+                  )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
                   <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
@@ -801,15 +826,22 @@ export default function Home() {
                 <ToggleRow
                   label="Training heute?"
                   checked={dailyNote.training}
-                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked, training_notes: checked ? dailyNote.training_notes : "" })}
+                  onChange={(checked) => setDailyNote({
+                    ...dailyNote,
+                    training: checked,
+                    training_activity: checked ? (dailyNote.training_activity || "yoga") : "",
+                    training_duration_min: checked ? (dailyNote.training_duration_min || "30") : "",
+                    training_kcal: checked ? dailyNote.training_kcal : "",
+                  })}
                 />
                 {dailyNote.training && (
-                  <input
-                    value={dailyNote.training_notes}
-                    onChange={(e) => setDailyNote({ ...dailyNote, training_notes: e.target.value })}
-                    className="field"
-                    placeholder="Was hast du trainiert? z.B. 30 min Yoga"
-                    autoFocus
+                  <TrainingPicker
+                    activity={dailyNote.training_activity}
+                    duration={dailyNote.training_duration_min}
+                    weight={parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65}
+                    onChange={(activity, duration, kcal) =>
+                      setDailyNote({ ...dailyNote, training_activity: activity, training_duration_min: duration, training_kcal: kcal })
+                    }
                   />
                 )}
                 <div className="grid grid-cols-2 gap-3">
@@ -1390,6 +1422,68 @@ function Input({
       <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
       <input value={value} onChange={(event) => onChange(event.target.value)} className="field" {...props} />
     </label>
+  );
+}
+
+function TrainingPicker({
+  activity,
+  duration,
+  weight,
+  onChange,
+}: {
+  activity: string;
+  duration: string;
+  weight: number;
+  onChange: (activity: string, duration: string, kcal: string) => void;
+}) {
+  const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 5.0;
+  const durationMin = Math.max(5, parseInt(duration) || 30);
+  const kcal = Math.round(met * weight * (durationMin / 60));
+
+  function update(newActivity: string, newDuration: string) {
+    const newMet = TRAINING_ACTIVITIES.find((a) => a.value === newActivity)?.met ?? 5.0;
+    const newMin = Math.max(5, parseInt(newDuration) || 30);
+    onChange(newActivity, newDuration, String(Math.round(newMet * weight * (newMin / 60))));
+  }
+
+  return (
+    <div className="space-y-3">
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Sport</span>
+        <select value={activity || "yoga"} onChange={(e) => update(e.target.value, duration)} className="field">
+          {TRAINING_ACTIVITIES.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
+          ))}
+        </select>
+      </label>
+      <div>
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Dauer</span>
+        <div className="soft-card flex items-center justify-between rounded-md p-1">
+          <button
+            type="button"
+            onClick={() => update(activity || "yoga", String(Math.max(5, durationMin - 5)))}
+            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            -
+          </button>
+          <div className="text-center">
+            <span className="serif text-2xl text-[var(--espresso)]">{durationMin}</span>
+            <span className="ml-1 text-sm text-[var(--espresso-50)]">min</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => update(activity || "yoga", String(Math.min(180, durationMin + 5)))}
+            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <div className="soft-card flex items-center justify-between p-3">
+        <span className="text-sm font-bold text-[var(--espresso-50)]">Geschätzt verbrannt</span>
+        <span className="serif text-2xl text-[var(--coral)]">≈ {kcal} kcal</span>
+      </div>
+    </div>
   );
 }
 

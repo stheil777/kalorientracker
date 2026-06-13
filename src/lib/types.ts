@@ -75,6 +75,9 @@ export type DailyNote = {
   mood: number | null;
   cravings: string | null;
   training_notes: string | null;
+  training_activity: string | null;
+  training_duration_min: number | null;
+  training_kcal: number | null;
   notes: string | null;
 };
 

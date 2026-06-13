@@ -43,7 +43,7 @@ async function searchUSDA(query: string, apiKey: string): Promise<FoodResult[]> 
     if (!res.ok) return [];
     const data = await res.json();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data.foods ?? []).slice(0, 8).map((f: any) => {
+    return (data.foods ?? []).slice(0, 12).map((f: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const get = (id: number) => Math.round(f.foodNutrients?.find((n: any) => n.nutrientId === id)?.value ?? 0);
       return {
@@ -57,7 +57,8 @@ async function searchUSDA(query: string, apiKey: string): Promise<FoodResult[]> 
         },
         source: "usda" as const,
       };
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }).filter((f: any) => f.per100g.calories > 0);
   } catch {
     return [];
   }

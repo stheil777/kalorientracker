@@ -1,27 +1,22 @@
 "use client";
 
 import {
-  cloneElement,
   useEffect,
   useRef,
   useMemo,
   useState,
   type FormEvent,
   type InputHTMLAttributes,
-  type ReactElement,
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  Activity,
   Calculator,
   ChevronDown,
-  Droplets,
   Flame,
   Heart,
   Loader2,
   LogOut,
-  Moon,
   Plus,
   Search,
   Settings2,
@@ -29,7 +24,6 @@ import {
   Trash2,
   Utensils,
   X,
-  Zap,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
 import { JEN_FOODS } from "@/lib/jen-foods";
@@ -342,23 +336,22 @@ export default function Home() {
   }, [user, activeProfileId, date]);
 
   useEffect(() => {
-    if (foodQuery.length < 2) {
-      setFoodResults([]);
-      setShowFoodResults(false);
-      return;
-    }
+    if (foodQuery.length < 2) return;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setFoodSearching(true);
       try {
-        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`);
+        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`, { signal: controller.signal });
         const data: FoodResult[] = await res.json();
         setFoodResults(data);
         setShowFoodResults(true);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setFoodSearching(false);
       } finally {
         setFoodSearching(false);
       }
     }, 350);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [foodQuery]);
 
   async function refreshDay() {
@@ -900,6 +893,7 @@ export default function Home() {
                     setMealForm({ ...mealForm, food_name: value });
                     setFoodQuery(value);
                     setSelectedFoodPer100g(null);
+                    if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
                   }}
                   onSelect={selectFood}
                   onFocus={() => setFoodFocused(true)}
@@ -1023,15 +1017,6 @@ function SetupMissing() {
         </p>
       </section>
     </main>
-  );
-}
-
-function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="app-card reveal-in mb-5 p-4">
-      <SectionTitle icon={icon} title={title} />
-      {children}
-    </section>
   );
 }
 
@@ -1404,34 +1389,6 @@ function Input({
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
       <input value={value} onChange={(event) => onChange(event.target.value)} className="field" {...props} />
-    </label>
-  );
-}
-
-function IconInput({
-  icon,
-  label,
-  value,
-  onChange,
-  ...props
-}: {
-  icon: ReactElement<{ className?: string }>;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
-  return (
-    <label className="soft-card block p-3">
-      <span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.06em] text-[var(--espresso-50)]">
-        {cloneElement(icon, { className: "h-4 w-4 text-[var(--coral)]" })}
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full bg-transparent text-lg font-black text-[var(--espresso)] outline-none"
-        {...props}
-      />
     </label>
   );
 }

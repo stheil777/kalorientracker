@@ -746,15 +746,17 @@ export default function Home() {
                   ))}
                 </div>
                 <FoodSearch
-                  query={foodQuery}
+                  query={mealForm.food_name}
                   results={foodResults}
                   searching={foodSearching}
                   showResults={showFoodResults}
-                  onQueryChange={(value) => setFoodQuery(value)}
+                  onQueryChange={(value) => {
+                    setMealForm({ ...mealForm, food_name: value });
+                    setFoodQuery(value);
+                  }}
                   onSelect={selectFood}
                   onDismiss={() => setShowFoodResults(false)}
                 />
-                <Input label="Lebensmittel" value={mealForm.food_name} onChange={(value) => setMealForm({ ...mealForm, food_name: value })} required />
                 <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="Kalorien" type="number" value={mealForm.calories} onChange={(value) => setMealForm({ ...mealForm, calories: value })} required />
@@ -1153,14 +1155,15 @@ function FoodSearch({
   return (
     <div ref={containerRef} className="relative">
       <label className="block">
-        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Datenbank suchen</span>
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Lebensmittel</span>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--espresso-50)]" />
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="z.B. Hähnchenbrust, Banane, Skyr..."
+            placeholder="Tippen zum Suchen..."
             className="field pl-10 pr-9"
+            required
           />
           {query ? (
             <button

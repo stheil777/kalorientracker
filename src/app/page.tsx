@@ -308,7 +308,7 @@ export default function Home() {
   }, [user, activeProfileId, date]);
 
   useEffect(() => {
-    if (foodQuery.length < 1) {
+    if (foodQuery.length < 2) {
       setFoodResults([]);
       setShowFoodResults(false);
       return;
@@ -323,7 +323,7 @@ export default function Home() {
       } finally {
         setFoodSearching(false);
       }
-    }, 200);
+    }, 350);
     return () => clearTimeout(timer);
   }, [foodQuery]);
 
@@ -1209,23 +1209,21 @@ function FoodSearch({
       <label className="block">
         <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Lebensmittel</span>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--espresso-50)]" />
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Tippen zum Suchen..."
-            className="field pl-10 pr-9"
+            className="field pr-16"
             required
           />
-          {query ? (
-            <button
-              type="button"
-              onClick={() => onQueryChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--espresso-50)]"
-            >
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-            </button>
-          ) : null}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[var(--espresso-50)]">
+            {query ? (
+              <button type="button" onClick={() => onQueryChange("")}>
+                {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              </button>
+            ) : null}
+            <Search className="h-4 w-4" />
+          </div>
         </div>
       </label>
 

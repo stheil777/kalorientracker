@@ -783,6 +783,13 @@ export default function Home() {
 
   return (
     <main className="app-shell">
+      <button
+        onClick={() => supabase?.auth.signOut()}
+        className="pressable fixed right-5 top-5 z-40 flex h-11 w-11 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)] backdrop-blur-sm"
+        aria-label="Ausloggen"
+      >
+        <LogOut className="h-5 w-5" />
+      </button>
       <div className="mx-auto max-w-md px-4 pb-28 pt-12">
         <header className="reveal-in mb-6">
           <p className="kicker mb-2">{formatGermanDate(date)}</p>
@@ -791,13 +798,6 @@ export default function Home() {
           </h1>
           <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
         </header>
-        <button
-          onClick={() => supabase?.auth.signOut()}
-          className="pressable fixed right-5 top-5 z-40 flex h-11 w-11 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)] backdrop-blur-sm"
-          aria-label="Ausloggen"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
 
         {saveError && (
           <div className="mb-4 flex items-center justify-between rounded-md bg-[rgba(230,80,60,0.10)] px-4 py-3 text-sm font-bold text-[var(--coral-dark)]">

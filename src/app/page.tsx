@@ -787,7 +787,7 @@ export default function Home() {
         <header className="reveal-in mb-6 flex items-start justify-between">
           <div>
             <p className="kicker mb-2">{formatGermanDate(date)}</p>
-            <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
+            <h1 className="serif text-[2.55rem] leading-none text-[var(--espresso)]">
               Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
             </h1>
             <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>

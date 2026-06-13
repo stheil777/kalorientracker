@@ -5,7 +5,7 @@ import type { FoodResult } from "@/lib/types";
 async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   try {
     const res = await fetch(
-      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=8&json=true`,
+      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=25&json=true`,
       { signal: AbortSignal.timeout(5000), headers: { "User-Agent": "KalorienTracker/1.0 (stheil.de@gmail.com)" } },
     );
     if (!res.ok) return [];
@@ -14,7 +14,7 @@ async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
       (data.hits ?? [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((p: any) => p.product_name && p.nutriments?.["energy-kcal_100g"])
-        .slice(0, 6)
+        .slice(0, 10)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((p: any) => ({
           id: `off-${p.code}`,
@@ -37,13 +37,13 @@ async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
 async function searchUSDA(query: string, apiKey: string): Promise<FoodResult[]> {
   try {
     const res = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=8&dataType=Foundation,SR%20Legacy`,
+      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=10&dataType=Foundation,SR%20Legacy`,
       { signal: AbortSignal.timeout(5000) },
     );
     if (!res.ok) return [];
     const data = await res.json();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data.foods ?? []).slice(0, 5).map((f: any) => {
+    return (data.foods ?? []).slice(0, 8).map((f: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const get = (id: number) => Math.round(f.foodNutrients?.find((n: any) => n.nutrientId === id)?.value ?? 0);
       return {

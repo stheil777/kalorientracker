@@ -1,26 +1,22 @@
 "use client";
 
 import {
-  cloneElement,
   useEffect,
   useRef,
   useMemo,
   useState,
   type FormEvent,
   type InputHTMLAttributes,
-  type ReactElement,
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
-  Activity,
   Calculator,
-  Droplets,
+  ChevronDown,
   Flame,
   Heart,
   Loader2,
   LogOut,
-  Moon,
   Plus,
   Search,
   Settings2,
@@ -28,9 +24,9 @@ import {
   Trash2,
   Utensils,
   X,
-  Zap,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
+import { JEN_FOODS } from "@/lib/jen-foods";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type {
   ActivityLevel,
@@ -53,6 +49,19 @@ const mealLabels: Record<MealType, string> = {
   snack: "Snack",
 };
 
+const TRAINING_ACTIVITIES = [
+  { value: "yoga", label: "Yoga", met: 3.0 },
+  { value: "pilates", label: "Pilates", met: 3.0 },
+  { value: "spaziergang", label: "Spaziergang", met: 3.0 },
+  { value: "tanzen", label: "Tanzen", met: 4.5 },
+  { value: "wandern", label: "Wandern", met: 5.3 },
+  { value: "radfahren", label: "Radfahren", met: 6.8 },
+  { value: "schwimmen", label: "Schwimmen", met: 6.0 },
+  { value: "krafttraining", label: "Krafttraining", met: 5.0 },
+  { value: "laufen", label: "Laufen", met: 8.3 },
+  { value: "hiit", label: "HIIT", met: 8.0 },
+];
+
 const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
   Jen: { calories: 1900, protein: 130, carbs: 190, fat: 60 },
@@ -72,9 +81,16 @@ const blankMeal: MealFormState = {
 const blankNote = {
   weight: "",
   training: false,
+  training_notes: "",
+  training_activity: "yoga",
+  training_duration_min: "30",
+  training_kcal: "",
   water_intake: "",
   sleep_quality: "3",
   energy_level: "3",
+  satiation: "3",
+  mood: "3",
+  cravings: "",
   notes: "",
 };
 
@@ -90,6 +106,15 @@ const blankGoals = {
   activity_level: "moderate" as ActivityLevel,
   goal_type: "maintain" as GoalType,
   diet_type: "balanced" as DietType,
+  target_weight: "",
+  training_frequency: "3",
+  cycle_relevant: false,
+  sleep_goal_hours: "",
+  intolerances: "",
+  no_go_foods: "",
+  favorite_foods: "",
+  alcohol_frequency: "selten",
+  alcohol_amount: "",
 };
 
 const activityLabels: Record<ActivityLevel, string> = {
@@ -134,6 +159,15 @@ function goalsFromProfile(profile: Profile) {
     activity_level: profile.activity_level ?? "moderate",
     goal_type: profile.goal_type ?? "maintain",
     diet_type: profile.diet_type ?? "balanced",
+    target_weight: profile.target_weight?.toString() ?? "",
+    training_frequency: profile.training_frequency?.toString() ?? "3",
+    cycle_relevant: profile.cycle_relevant ?? false,
+    sleep_goal_hours: profile.sleep_goal_hours?.toString() ?? "",
+    intolerances: profile.intolerances ?? "",
+    no_go_foods: profile.no_go_foods ?? "",
+    favorite_foods: profile.favorite_foods ?? "",
+    alcohol_frequency: profile.alcohol_frequency ?? "selten",
+    alcohol_amount: profile.alcohol_amount ?? "",
   };
 }
 
@@ -191,13 +225,25 @@ export default function Home() {
   const [dailyNote, setDailyNote] = useState(blankNote);
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
+  const [mealSectionOpen, setMealSectionOpen] = useState(false);
   const [goalForm, setGoalForm] = useState(blankGoals);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
   const [foodSearching, setFoodSearching] = useState(false);
   const [showFoodResults, setShowFoodResults] = useState(false);
+  const [foodFocused, setFoodFocused] = useState(false);
   const [selectedFoodPer100g, setSelectedFoodPer100g] = useState<FoodResult["per100g"] | null>(null);
+  const [selectedFoodStueckG, setSelectedFoodStueckG] = useState<number | null>(null);
   const [selectedAmount, setSelectedAmount] = useState(100);
+
+  const jenMatches = useMemo(() => {
+    if (!foodFocused) return [];
+    const q = foodQuery.trim().toLowerCase();
+    if (!q) return JEN_FOODS.slice(0, 8);
+    return JEN_FOODS.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 8);
+  }, [foodQuery, foodFocused]);
+
+  const showDropdown = foodFocused && (jenMatches.length > 0 || showFoodResults || foodSearching);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
@@ -308,23 +354,22 @@ export default function Home() {
   }, [user, activeProfileId, date]);
 
   useEffect(() => {
-    if (foodQuery.length < 2) {
-      setFoodResults([]);
-      setShowFoodResults(false);
-      return;
-    }
+    if (foodQuery.length < 2) return;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setFoodSearching(true);
       try {
-        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`);
+        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`, { signal: controller.signal });
         const data: FoodResult[] = await res.json();
         setFoodResults(data);
         setShowFoodResults(true);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setFoodSearching(false);
       } finally {
         setFoodSearching(false);
       }
     }, 350);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [foodQuery]);
 
   async function refreshDay() {
@@ -352,9 +397,16 @@ export default function Home() {
         ? {
             weight: note.weight?.toString() ?? "",
             training: note.training,
+            training_notes: note.training_notes ?? "",
+            training_activity: note.training_activity ?? "yoga",
+            training_duration_min: note.training_duration_min?.toString() ?? "30",
+            training_kcal: note.training_kcal?.toString() ?? "",
             water_intake: note.water_intake?.toString() ?? "",
             sleep_quality: note.sleep_quality?.toString() ?? "3",
             energy_level: note.energy_level?.toString() ?? "3",
+            satiation: note.satiation?.toString() ?? "3",
+            mood: note.mood?.toString() ?? "3",
+            cravings: note.cravings ?? "",
             notes: note.notes ?? "",
           }
         : blankNote,
@@ -440,7 +492,10 @@ export default function Home() {
       });
     }
 
-    setMealForm(blankMeal);
+    setMealForm((current) => ({ ...blankMeal, meal_type: current.meal_type }));
+    setSelectedFoodPer100g(null);
+    setSelectedFoodStueckG(null);
+    setSelectedAmount(100);
     await refreshDay();
     await refreshFavorites();
     setSaving(false);
@@ -502,6 +557,15 @@ export default function Home() {
         goal_type: goalForm.goal_type,
         diet_type: goalForm.diet_type,
         calculated_tdee: calculated?.tdee ?? null,
+        target_weight: Number(goalForm.target_weight) || null,
+        training_frequency: Number(goalForm.training_frequency) || null,
+        cycle_relevant: goalForm.cycle_relevant,
+        sleep_goal_hours: Number(goalForm.sleep_goal_hours) || null,
+        intolerances: goalForm.intolerances.trim() || null,
+        no_go_foods: goalForm.no_go_foods.trim() || null,
+        favorite_foods: goalForm.favorite_foods.trim() || null,
+        alcohol_frequency: goalForm.alcohol_frequency || null,
+        alcohol_amount: goalForm.alcohol_amount.trim() || null,
       })
       .eq("id", activeProfile.id)
       .select("*")
@@ -519,30 +583,40 @@ export default function Home() {
   }
 
   function selectFood(food: FoodResult) {
+    const defaultG = food.stueck_g ?? 100;
+    const f = defaultG / 100;
     setSelectedFoodPer100g(food.per100g);
-    setSelectedAmount(100);
+    setSelectedFoodStueckG(food.stueck_g ?? null);
+    setSelectedAmount(defaultG);
     setMealForm((current) => ({
       ...current,
       food_name: food.name,
-      amount: "100 g",
-      calories: food.per100g.calories.toString(),
-      protein: food.per100g.protein.toString(),
-      carbs: food.per100g.carbs.toString(),
-      fat: food.per100g.fat.toString(),
+      amount: food.stueck_g ? "1 Stück" : "100 g",
+      calories: Math.round(food.per100g.calories * f).toString(),
+      protein: Math.round(food.per100g.protein * f).toString(),
+      carbs: Math.round(food.per100g.carbs * f).toString(),
+      fat: Math.round(food.per100g.fat * f).toString(),
+      saveFavorite: food.source !== "jen",
     }));
     setFoodQuery("");
     setFoodResults([]);
     setShowFoodResults(false);
+    setFoodFocused(false);
   }
 
-  function changeAmount(grams: number) {
+  function selectFoodAndOpen(food: FoodResult) {
+    selectFood(food);
+    setMealSectionOpen(true);
+  }
+
+  function changeAmount(grams: number, label?: string) {
     if (!selectedFoodPer100g) return;
     const g = Math.max(10, grams);
     const f = g / 100;
     setSelectedAmount(g);
     setMealForm((current) => ({
       ...current,
-      amount: `${g} g`,
+      amount: label ?? `${g} g`,
       calories: Math.round(selectedFoodPer100g.calories * f).toString(),
       protein: Math.round(selectedFoodPer100g.protein * f).toString(),
       carbs: Math.round(selectedFoodPer100g.carbs * f).toString(),
@@ -574,9 +648,16 @@ export default function Home() {
         date,
         weight: dailyNote.weight ? Number(dailyNote.weight) : null,
         training: dailyNote.training,
+        training_notes: dailyNote.training_notes.trim() || null,
+        training_activity: dailyNote.training ? (dailyNote.training_activity || null) : null,
+        training_duration_min: dailyNote.training && dailyNote.training_duration_min ? Number(dailyNote.training_duration_min) : null,
+        training_kcal: dailyNote.training && dailyNote.training_kcal ? Number(dailyNote.training_kcal) : null,
         water_intake: dailyNote.water_intake ? Number(dailyNote.water_intake) : null,
         sleep_quality: dailyNote.sleep_quality ? Number(dailyNote.sleep_quality) : null,
         energy_level: dailyNote.energy_level ? Number(dailyNote.energy_level) : null,
+        satiation: dailyNote.satiation ? Number(dailyNote.satiation) : null,
+        mood: dailyNote.mood ? Number(dailyNote.mood) : null,
+        cravings: dailyNote.cravings.trim() || null,
         notes: dailyNote.notes.trim() || null,
       },
       { onConflict: "user_id,profile_id,date" },
@@ -707,8 +788,11 @@ export default function Home() {
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
                   <p className="serif text-[4.4rem] leading-none text-[var(--coral)]">
-                    {Math.max(activeProfile.calorie_goal - totals.calories, 0)}
+                    {Math.max(activeProfile.calorie_goal - totals.calories + (Number(dailyNote.training_kcal) || 0), 0)}
                   </p>
+                  {Number(dailyNote.training_kcal) > 0 && (
+                    <p className="mt-1 text-xs font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
+                  )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
                   <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
@@ -721,6 +805,10 @@ export default function Home() {
                 <Macro label="Protein" value={totals.protein} goal={activeProfile.protein_goal} />
                 <Macro label="Carbs" value={totals.carbs} goal={activeProfile.carbs_goal} />
                 <Macro label="Fett" value={totals.fat} goal={activeProfile.fat_goal} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <WaterStatus water={dailyNote.water_intake} />
+                <BodyScore energy={dailyNote.energy_level} mood={dailyNote.mood} satiation={dailyNote.satiation} />
               </div>
               <button
                 type="button"
@@ -745,8 +833,83 @@ export default function Home() {
               </section>
             ) : null}
 
-            <section className="app-card reveal-in reveal-delay-3 mb-5 p-4">
-              <SectionTitle icon={<Plus />} title="Mahlzeit eintragen" />
+            <AccordionSection title="Check-In" icon={<Heart />}>
+              <form onSubmit={saveDailyNote} className="space-y-3">
+                <ToggleRow
+                  label="Training heute?"
+                  checked={dailyNote.training}
+                  onChange={(checked) => setDailyNote({
+                    ...dailyNote,
+                    training: checked,
+                    training_activity: checked ? (dailyNote.training_activity || "yoga") : "",
+                    training_duration_min: checked ? (dailyNote.training_duration_min || "30") : "",
+                    training_kcal: checked ? dailyNote.training_kcal : "",
+                  })}
+                />
+                {dailyNote.training && (
+                  <TrainingPicker
+                    activity={dailyNote.training_activity}
+                    duration={dailyNote.training_duration_min}
+                    weight={parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65}
+                    onChange={(activity, duration, kcal) =>
+                      setDailyNote({ ...dailyNote, training_activity: activity, training_duration_min: duration, training_kcal: kcal })
+                    }
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <WaterStepper
+                    value={dailyNote.water_intake}
+                    onChange={(v) => setDailyNote({ ...dailyNote, water_intake: v })}
+                  />
+                  <WeightStepper
+                    value={dailyNote.weight}
+                    fallback={activeProfile?.current_weight ?? 80}
+                    onChange={(v) => setDailyNote({ ...dailyNote, weight: v })}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <ScoreStepper
+                    label="Sättigung"
+                    value={dailyNote.satiation}
+                    onChange={(v) => setDailyNote({ ...dailyNote, satiation: v })}
+                  />
+                  <ScoreStepper
+                    label="Stimmung"
+                    value={dailyNote.mood}
+                    onChange={(v) => setDailyNote({ ...dailyNote, mood: v })}
+                  />
+                  <ScoreStepper
+                    label="Energie"
+                    value={dailyNote.energy_level}
+                    onChange={(v) => setDailyNote({ ...dailyNote, energy_level: v })}
+                  />
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
+                  <input
+                    value={dailyNote.cravings}
+                    onChange={(e) => setDailyNote({ ...dailyNote, cravings: e.target.value })}
+                    className="field"
+                    placeholder="Worauf hattest du heute Lust?"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
+                  <textarea
+                    value={dailyNote.notes}
+                    onChange={(e) => setDailyNote({ ...dailyNote, notes: e.target.value })}
+                    rows={2}
+                    className="field h-auto min-h-20 py-3"
+                    placeholder="Besonderheiten, Beobachtungen..."
+                  />
+                </label>
+                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Check-In speichern"}
+                </button>
+              </form>
+            </AccordionSection>
+
+            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />} open={mealSectionOpen} onOpenChange={setMealSectionOpen}>
               <form onSubmit={addMeal} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(mealLabels) as MealType[]).map((type) => (
@@ -766,19 +929,22 @@ export default function Home() {
                 </div>
                 <FoodSearch
                   query={mealForm.food_name}
-                  results={foodResults}
+                  jenFoods={jenMatches}
+                  apiResults={foodResults}
                   searching={foodSearching}
-                  showResults={showFoodResults}
+                  showResults={showDropdown}
                   onQueryChange={(value) => {
                     setMealForm({ ...mealForm, food_name: value });
                     setFoodQuery(value);
                     setSelectedFoodPer100g(null);
+                    if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
                   }}
                   onSelect={selectFood}
-                  onDismiss={() => setShowFoodResults(false)}
+                  onFocus={() => setFoodFocused(true)}
+                  onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
                 />
                 {selectedFoodPer100g ? (
-                  <AmountStepper amount={selectedAmount} onChange={changeAmount} />
+                  <AmountStepper amount={selectedAmount} onChange={changeAmount} stueckG={selectedFoodStueckG ?? undefined} />
                 ) : (
                   <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
                 )}
@@ -797,37 +963,69 @@ export default function Home() {
                   {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Mahlzeit speichern"}
                 </button>
               </form>
-            </section>
+            </AccordionSection>
 
-            <Section title="Favoriten" icon={<Star />}>
-              {favorites.length ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {favorites.map((favorite) => (
-                    <div
-                      key={favorite.id}
-                      className="min-w-40 rounded-md border border-[rgba(217,164,65,0.22)] bg-[rgba(255,255,255,0.7)] p-3 text-sm"
-                    >
-                      <button onClick={() => quickAddFavorite(favorite)} className="pressable w-full text-left">
-                        <p className="font-black text-[var(--espresso)]">{favorite.name}</p>
-                        <p className="mt-1 text-[var(--espresso-50)]">{favorite.calories} kcal · tap zum Adden</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteFavorite(favorite.id)}
-                        className="pressable mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-sm border border-[var(--espresso-14)] text-xs font-black text-[var(--espresso-50)]"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Entfernen
-                      </button>
+            <AccordionSection title="Favoriten" icon={<Star />}>
+              {favorites.length > 0 && (
+                <div className="mb-5 divide-y divide-[var(--espresso-14)]">
+                  {[...favorites]
+                    .sort((a, b) => {
+                      const aMatch = a.meal_type === mealForm.meal_type ? 0 : 1;
+                      const bMatch = b.meal_type === mealForm.meal_type ? 0 : 1;
+                      return aMatch - bMatch;
+                    })
+                    .map((favorite) => {
+                      return (
+                        <div key={favorite.id} className="flex items-center gap-3 py-3">
+                          <button onClick={() => quickAddFavorite(favorite)} className="pressable min-w-0 flex-1 text-left">
+                            <p className="truncate font-black text-sm text-[var(--espresso)]">{favorite.name}</p>
+                            <p className="text-xs text-[var(--espresso-50)]">
+                              {mealLabels[favorite.meal_type]} · {favorite.calories} kcal
+                            </p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteFavorite(favorite.id)}
+                            className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+              <p className="kicker mb-3">{favorites.length > 0 ? "Jens Lebensmittel" : "Jens Lebensmittel"}</p>
+              <div className="divide-y divide-[var(--espresso-14)]">
+                {[...JEN_FOODS]
+                  .sort((a, b) => a.name.localeCompare("" + b.name, "de"))
+                  .map((food) => (
+                    <div key={food.id} className="flex items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                        <p className="text-xs text-[var(--espresso-50)]">
+                          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="text-right">
+                          <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+                          <p className="text-[10px] text-[var(--espresso-50)]">kcal/100g</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => selectFoodAndOpen(food)}
+                          className="pressable flex h-9 w-9 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <Empty text="Speichere eine Mahlzeit als Favorit, dann ist sie hier mit einem Tap verfügbar." />
-              )}
-            </Section>
+              </div>
+            </AccordionSection>
 
-            <Section title="Heute gegessen" icon={<Utensils />}>
+            <AccordionSection title="Heute gegessen" icon={<Utensils />}>
               {meals.length ? (
                 <div className="space-y-2">
                   {meals.map((meal) => (
@@ -858,36 +1056,7 @@ export default function Home() {
               ) : (
                 <Empty text="Noch keine Mahlzeit für diesen Tag." />
               )}
-            </Section>
-
-            <Section title="Tagesnotizen" icon={<Heart />}>
-              <form onSubmit={saveDailyNote} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <IconInput icon={<Activity />} label="Gewicht kg" type="number" value={dailyNote.weight} onChange={(value) => setDailyNote({ ...dailyNote, weight: value })} />
-                  <IconInput icon={<Droplets />} label="Wasser l" type="number" value={dailyNote.water_intake} onChange={(value) => setDailyNote({ ...dailyNote, water_intake: value })} />
-                  <IconInput icon={<Moon />} label="Schlaf 1-5" type="number" min={1} max={5} value={dailyNote.sleep_quality} onChange={(value) => setDailyNote({ ...dailyNote, sleep_quality: value })} />
-                  <IconInput icon={<Zap />} label="Energie 1-5" type="number" min={1} max={5} value={dailyNote.energy_level} onChange={(value) => setDailyNote({ ...dailyNote, energy_level: value })} />
-                </div>
-                <ToggleRow
-                  label="Training heute?"
-                  checked={dailyNote.training}
-                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked })}
-                />
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
-                  <textarea
-                    value={dailyNote.notes}
-                    onChange={(event) => setDailyNote({ ...dailyNote, notes: event.target.value })}
-                    rows={3}
-                    className="field h-auto min-h-28 py-3"
-                    placeholder="Hunger, Stimmung, Besonderheiten..."
-                  />
-                </label>
-                <button className="pressable h-14 w-full rounded-md border border-[var(--coral)] bg-white/70 px-5 text-base font-black text-[var(--coral-dark)]">
-                  Notizen speichern
-                </button>
-              </form>
-            </Section>
+            </AccordionSection>
           </>
         ) : null}
       </div>
@@ -911,12 +1080,160 @@ function SetupMissing() {
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function AccordionSection({
+  title,
+  icon,
+  children,
+  defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  function toggle() {
+    if (onOpenChange) onOpenChange(!open);
+    else setInternalOpen((o) => !o);
+  }
+
   return (
-    <section className="app-card reveal-in mb-5 p-4">
-      <SectionTitle icon={icon} title={title} />
-      {children}
+    <section className="app-card reveal-in mb-4 overflow-hidden">
+      <button
+        type="button"
+        onClick={toggle}
+        className="pressable flex w-full items-center justify-between px-4 py-4"
+      >
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]">
+            {icon}
+          </span>
+          <span className="serif text-2xl text-[var(--espresso)]">{title}</span>
+        </div>
+        <ChevronDown
+          className={`h-5 w-5 text-[var(--espresso-50)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
     </section>
+  );
+}
+
+function WaterStepper({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const liters = parseFloat(value) || 0;
+  const dec = (n: number) => Math.round(n * 100) / 100;
+  return (
+    <div>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Wasser</span>
+      <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <button
+          type="button"
+          onClick={() => onChange(String(dec(Math.max(0, liters - 0.25))))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          -
+        </button>
+        <div className="text-center">
+          <span className="serif text-2xl text-[var(--espresso)]">{liters.toFixed(2)}</span>
+          <span className="ml-1 text-sm text-[var(--espresso-50)]">l</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(String(dec(liters + 0.25)))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WeightStepper({
+  value,
+  fallback,
+  onChange,
+}: {
+  value: string;
+  fallback: number;
+  onChange: (v: string) => void;
+}) {
+  const kg = parseFloat(value) || fallback;
+  const dec = (n: number) => Math.round(n * 10) / 10;
+  return (
+    <div>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gewicht</span>
+      <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <button
+          type="button"
+          onClick={() => onChange(dec(Math.max(30, kg - 0.1)).toFixed(1))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          -
+        </button>
+        <div className="text-center">
+          <span className="serif text-2xl text-[var(--espresso)]">{kg.toFixed(1)}</span>
+          <span className="ml-1 text-sm text-[var(--espresso-50)]">kg</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(dec(kg + 0.1).toFixed(1))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const score = Math.min(5, Math.max(1, parseInt(value) || 3));
+  return (
+    <div>
+      <span className="mb-2 block text-xs font-bold text-[var(--espresso-50)]">{label}</span>
+      <div className="soft-card flex flex-col items-center gap-2 rounded-md py-3">
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((d) => (
+            <span
+              key={d}
+              className={`h-2 w-2 rounded-full ${d <= score ? "bg-[var(--coral)]" : "bg-[rgba(52,40,32,0.14)]"}`}
+            />
+          ))}
+        </div>
+        <div className="flex w-full items-center justify-between px-1">
+          <button
+            type="button"
+            onClick={() => onChange(String(Math.max(1, score - 1)))}
+            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            -
+          </button>
+          <span className="serif text-xl text-[var(--espresso)]">{score}</span>
+          <button
+            type="button"
+            onClick={() => onChange(String(Math.min(5, score + 1)))}
+            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1016,6 +1333,78 @@ function ProfileSetupForm({
         </div>
       ) : null}
 
+      <div className="pt-2">
+        <p className="kicker mb-3">Persönliches Profil</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Wunschgewicht kg"
+              type="number"
+              value={goalForm.target_weight}
+              onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })}
+            />
+            <SelectField
+              label="Training / Woche"
+              value={goalForm.training_frequency}
+              onChange={(value) => setGoalForm({ ...goalForm, training_frequency: value })}
+              options={[
+                { value: "0", label: "Kein Training" },
+                { value: "1", label: "1 Tag" },
+                { value: "2", label: "2 Tage" },
+                { value: "3", label: "3 Tage" },
+                { value: "4", label: "4 Tage" },
+                { value: "5", label: "5 Tage" },
+                { value: "6", label: "6 Tage" },
+                { value: "7", label: "Täglich" },
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Schlafziel Stunden"
+              type="number"
+              step="0.5"
+              value={goalForm.sleep_goal_hours}
+              onChange={(value) => setGoalForm({ ...goalForm, sleep_goal_hours: value })}
+            />
+            <SelectField
+              label="Alkohol"
+              value={goalForm.alcohol_frequency}
+              onChange={(value) => setGoalForm({ ...goalForm, alcohol_frequency: value })}
+              options={[
+                { value: "nie", label: "Nie" },
+                { value: "selten", label: "Selten" },
+                { value: "1-2x", label: "1-2x pro Woche" },
+                { value: "oefter", label: "Öfter" },
+              ]}
+            />
+          </div>
+          <ToggleRow
+            label="Zyklus / Periode relevant?"
+            checked={goalForm.cycle_relevant}
+            onChange={(checked) => setGoalForm({ ...goalForm, cycle_relevant: checked })}
+          />
+          <TextArea
+            label="Unverträglichkeiten"
+            value={goalForm.intolerances}
+            onChange={(value) => setGoalForm({ ...goalForm, intolerances: value })}
+            placeholder="z.B. Laktose, Gluten, Nüsse..."
+          />
+          <TextArea
+            label="No-go Foods"
+            value={goalForm.no_go_foods}
+            onChange={(value) => setGoalForm({ ...goalForm, no_go_foods: value })}
+            placeholder="Was kommt gar nicht auf den Teller?"
+          />
+          <TextArea
+            label="Lieblingsfoods"
+            value={goalForm.favorite_foods}
+            onChange={(value) => setGoalForm({ ...goalForm, favorite_foods: value })}
+            placeholder="Was isst du besonders gerne?"
+          />
+        </div>
+      </div>
+
       <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
         {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Profil speichern"}
       </button>
@@ -1075,31 +1464,65 @@ function Input({
   );
 }
 
-function IconInput({
-  icon,
-  label,
-  value,
+function TrainingPicker({
+  activity,
+  duration,
+  weight,
   onChange,
-  ...props
 }: {
-  icon: ReactElement<{ className?: string }>;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
+  activity: string;
+  duration: string;
+  weight: number;
+  onChange: (activity: string, duration: string, kcal: string) => void;
+}) {
+  const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 5.0;
+  const durationMin = Math.max(5, parseInt(duration) || 30);
+  const kcal = Math.round(met * weight * (durationMin / 60));
+
+  function update(newActivity: string, newDuration: string) {
+    const newMet = TRAINING_ACTIVITIES.find((a) => a.value === newActivity)?.met ?? 5.0;
+    const newMin = Math.max(5, parseInt(newDuration) || 30);
+    onChange(newActivity, newDuration, String(Math.round(newMet * weight * (newMin / 60))));
+  }
+
   return (
-    <label className="soft-card block p-3">
-      <span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.06em] text-[var(--espresso-50)]">
-        {cloneElement(icon, { className: "h-4 w-4 text-[var(--coral)]" })}
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full bg-transparent text-lg font-black text-[var(--espresso)] outline-none"
-        {...props}
-      />
-    </label>
+    <div className="space-y-3">
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Sport</span>
+        <select value={activity || "yoga"} onChange={(e) => update(e.target.value, duration)} className="field">
+          {TRAINING_ACTIVITIES.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
+          ))}
+        </select>
+      </label>
+      <div>
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Dauer</span>
+        <div className="soft-card flex items-center justify-between rounded-md p-1">
+          <button
+            type="button"
+            onClick={() => update(activity || "yoga", String(Math.max(5, durationMin - 5)))}
+            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            -
+          </button>
+          <div className="text-center">
+            <span className="serif text-2xl text-[var(--espresso)]">{durationMin}</span>
+            <span className="ml-1 text-sm text-[var(--espresso-50)]">min</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => update(activity || "yoga", String(Math.min(180, durationMin + 5)))}
+            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <div className="soft-card flex items-center justify-between p-3">
+        <span className="text-sm font-bold text-[var(--espresso-50)]">Geschätzt verbrannt</span>
+        <span className="serif text-2xl text-[var(--coral)]">≈ {kcal} kcal</span>
+      </div>
+    </div>
   );
 }
 
@@ -1147,18 +1570,50 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   );
 }
 
-function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: number) => void }) {
+function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange: (g: number, label?: string) => void; stueckG?: number }) {
+  const [unit, setUnit] = useState<"g" | "stueck">(stueckG ? "stueck" : "g");
+  const fmt = (n: number) => n % 1 === 0 ? `${n}` : n.toFixed(1);
+
+  if (unit === "stueck" && stueckG) {
+    const stueck = Math.max(0.5, Math.round((amount / stueckG) * 2) / 2);
+    return (
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+          <button type="button" onClick={() => setUnit("g")} className="text-xs font-bold text-[var(--coral)]">in Gramm →</button>
+        </div>
+        <div className="soft-card flex items-center justify-between rounded-md p-1">
+          <button
+            type="button"
+            onClick={() => { const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >-</button>
+          <div className="text-center">
+            <span className="serif text-4xl text-[var(--espresso)]">{fmt(stueck)}</span>
+            <span className="ml-1.5 text-base text-[var(--espresso-50)]">Stück</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => { const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >+</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+        {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-xs font-bold text-[var(--coral)]">in Stück →</button>}
+      </div>
       <div className="soft-card flex items-center justify-between rounded-md p-1">
         <button
           type="button"
           onClick={() => onChange(amount - 10)}
           className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-        >
-          −
-        </button>
+        >-</button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
           <span className="ml-1.5 text-base text-[var(--espresso-50)]">g</span>
@@ -1167,9 +1622,7 @@ function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: num
           type="button"
           onClick={() => onChange(amount + 10)}
           className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-        >
-          +
-        </button>
+        >+</button>
       </div>
     </div>
   );
@@ -1177,19 +1630,23 @@ function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: num
 
 function FoodSearch({
   query,
-  results,
+  jenFoods,
+  apiResults,
   searching,
   showResults,
   onQueryChange,
   onSelect,
+  onFocus,
   onDismiss,
 }: {
   query: string;
-  results: FoodResult[];
+  jenFoods: FoodResult[];
+  apiResults: FoodResult[];
   searching: boolean;
   showResults: boolean;
   onQueryChange: (value: string) => void;
   onSelect: (food: FoodResult) => void;
+  onFocus: () => void;
   onDismiss: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1204,6 +1661,10 @@ function FoodSearch({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onDismiss]);
 
+  const showBoth = jenFoods.length > 0 && apiResults.length > 0;
+  const isEmpty = jenFoods.length === 0 && apiResults.length === 0;
+  const showEmpty = showResults && isEmpty && !searching && query.length >= 2;
+
   return (
     <div ref={containerRef} className="relative">
       <label className="block">
@@ -1212,6 +1673,7 @@ function FoodSearch({
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={onFocus}
             placeholder="Tippen zum Suchen..."
             className="field pr-16"
             required
@@ -1227,37 +1689,42 @@ function FoodSearch({
         </div>
       </label>
 
-      {showResults && results.length > 0 ? (
+      {showResults && !isEmpty ? (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[var(--espresso-14)] bg-white shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
-          {results.map((food) => (
-            <button
-              key={food.id}
-              type="button"
-              onClick={() => onSelect(food)}
-              className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
-                  {food.per100g.fat >= 8 ? (
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(240,107,93,0.12)] text-[var(--coral-dark)]">in Öl</span>
-                  ) : food.per100g.fat <= 2 && food.per100g.calories < 120 ? (
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(52,40,32,0.07)] text-[var(--espresso-50)]">in Wasser</span>
-                  ) : null}
-                </div>
+          <div className="max-h-72 overflow-y-auto overscroll-contain">
+            {jenFoods.length > 0 && (
+              <>
+                {showBoth && (
+                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(241,231,214,0.7)]">
+                    Jens Lebensmittel
+                  </div>
+                )}
+                {jenFoods.map((food) => (
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                ))}
+              </>
+            )}
+            {searching && apiResults.length === 0 && query.length >= 2 && (
+              <div className="flex items-center gap-2 px-4 py-3 text-xs text-[var(--espresso-50)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Datenbank wird durchsucht...
               </div>
-              <div className="shrink-0 text-right">
-                <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
-                <p className="text-xs text-[var(--espresso-50)]">kcal</p>
-                <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
-                  P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
-                </p>
-              </div>
-            </button>
-          ))}
+            )}
+            {apiResults.length > 0 && (
+              <>
+                {showBoth && (
+                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(52,40,32,0.04)]">
+                    Datenbank
+                  </div>
+                )}
+                {apiResults.map((food) => (
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                ))}
+              </>
+            )}
+          </div>
         </div>
-      ) : showResults && !searching ? (
+      ) : showEmpty ? (
         <div className="absolute z-10 mt-1 w-full rounded-md border border-[var(--espresso-14)] bg-white px-4 py-3 shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
           <p className="text-sm text-[var(--espresso-50)]">Kein Ergebnis — Werte manuell eingeben.</p>
         </div>
@@ -1266,6 +1733,97 @@ function FoodSearch({
   );
 }
 
+function FoodItem({ food, onSelect }: { food: FoodResult; onSelect: (food: FoodResult) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(food)}
+      className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+        <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+        <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
+          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 function Empty({ text }: { text: string }) {
   return <p className="soft-card p-4 text-sm leading-6 text-[var(--espresso-50)]">{text}</p>;
+}
+
+function WaterStatus({ water }: { water: string }) {
+  const liters = parseFloat(water) || 0;
+  return (
+    <div className="soft-card p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Wasser</p>
+      <p className="serif mt-2 text-2xl text-[var(--espresso)]">{liters > 0 ? `${liters} l` : "—"}</p>
+      <p className="text-xs text-[var(--espresso-50)]">getrunken</p>
+    </div>
+  );
+}
+
+function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; satiation: string }) {
+  const values = [energy, mood, satiation]
+    .map((v) => parseFloat(v))
+    .filter((v) => !isNaN(v) && v >= 1);
+  if (values.length === 0) {
+    return (
+      <div className="soft-card p-3">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+        <p className="serif mt-2 text-2xl text-[var(--espresso)]">—</p>
+        <p className="text-xs text-[var(--espresso-50)]">Check-In ausfüllen</p>
+      </div>
+    );
+  }
+  const score = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+  const dots = Array.from({ length: 5 }, (_, i) => i + 1);
+  return (
+    <div className="soft-card p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+      <div className="mt-2 flex gap-1">
+        {dots.map((d) => (
+          <span
+            key={d}
+            className={`h-2.5 w-2.5 rounded-full ${d <= Math.round(score) ? "bg-[var(--coral)]" : "bg-[rgba(52,40,32,0.14)]"}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-[var(--espresso-50)]">{score} / 5</p>
+    </div>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={2}
+        className="field h-auto min-h-16 py-3 text-sm"
+        placeholder={placeholder}
+      />
+    </label>
+  );
 }

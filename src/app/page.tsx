@@ -1238,7 +1238,14 @@ function FoodSearch({
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand ?? "pro 100 g"}</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
+                  {food.per100g.fat >= 8 ? (
+                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(240,107,93,0.12)] text-[var(--coral-dark)]">in Öl</span>
+                  ) : food.per100g.fat <= 2 && food.per100g.calories < 120 ? (
+                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(52,40,32,0.07)] text-[var(--espresso-50)]">in Wasser</span>
+                  ) : null}
+                </div>
               </div>
               <div className="shrink-0 text-right">
                 <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>

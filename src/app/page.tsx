@@ -196,6 +196,8 @@ export default function Home() {
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
   const [foodSearching, setFoodSearching] = useState(false);
   const [showFoodResults, setShowFoodResults] = useState(false);
+  const [selectedFoodPer100g, setSelectedFoodPer100g] = useState<FoodResult["per100g"] | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState(100);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
@@ -517,6 +519,8 @@ export default function Home() {
   }
 
   function selectFood(food: FoodResult) {
+    setSelectedFoodPer100g(food.per100g);
+    setSelectedAmount(100);
     setMealForm((current) => ({
       ...current,
       food_name: food.name,
@@ -529,6 +533,21 @@ export default function Home() {
     setFoodQuery("");
     setFoodResults([]);
     setShowFoodResults(false);
+  }
+
+  function changeAmount(grams: number) {
+    if (!selectedFoodPer100g) return;
+    const g = Math.max(10, grams);
+    const f = g / 100;
+    setSelectedAmount(g);
+    setMealForm((current) => ({
+      ...current,
+      amount: `${g} g`,
+      calories: Math.round(selectedFoodPer100g.calories * f).toString(),
+      protein: Math.round(selectedFoodPer100g.protein * f).toString(),
+      carbs: Math.round(selectedFoodPer100g.carbs * f).toString(),
+      fat: Math.round(selectedFoodPer100g.fat * f).toString(),
+    }));
   }
 
   function selectProfile(profile: Profile) {
@@ -753,11 +772,16 @@ export default function Home() {
                   onQueryChange={(value) => {
                     setMealForm({ ...mealForm, food_name: value });
                     setFoodQuery(value);
+                    setSelectedFoodPer100g(null);
                   }}
                   onSelect={selectFood}
                   onDismiss={() => setShowFoodResults(false)}
                 />
-                <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
+                {selectedFoodPer100g ? (
+                  <AmountStepper amount={selectedAmount} onChange={changeAmount} />
+                ) : (
+                  <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="Kalorien" type="number" value={mealForm.calories} onChange={(value) => setMealForm({ ...mealForm, calories: value })} required />
                   <Input label="Protein" type="number" value={mealForm.protein} onChange={(value) => setMealForm({ ...mealForm, protein: value })} />
@@ -1123,6 +1147,52 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   );
 }
 
+const AMOUNT_PRESETS = [50, 80, 100, 120, 150, 200];
+
+function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: number) => void }) {
+  return (
+    <div>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        {AMOUNT_PRESETS.map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => onChange(g)}
+            className={`pressable h-9 rounded-md px-3 text-sm font-black transition-colors ${
+              amount === g
+                ? "bg-[var(--coral)] text-white"
+                : "soft-card text-[var(--espresso-50)]"
+            }`}
+          >
+            {g} g
+          </button>
+        ))}
+      </div>
+      <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <button
+          type="button"
+          onClick={() => onChange(amount - 10)}
+          className="pressable flex h-12 w-14 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          −
+        </button>
+        <div className="text-center">
+          <span className="serif text-3xl text-[var(--espresso)]">{amount}</span>
+          <span className="ml-1 text-sm text-[var(--espresso-50)]">g</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(amount + 10)}
+          className="pressable flex h-12 w-14 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FoodSearch({
   query,
   results,
@@ -1188,12 +1258,7 @@ function FoodSearch({
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                {food.brand ? (
-                  <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p>
-                ) : null}
-                <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
-                  {food.source === "off" ? "Open Food Facts" : "USDA"} · pro 100 g
-                </p>
+                <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand ?? "pro 100 g"}</p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>

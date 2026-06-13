@@ -1105,13 +1105,15 @@ export default function Home() {
       <footer className="pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
       </footer>
-      <button
-        onClick={() => supabase?.auth.signOut()}
-        className="pressable mx-4 mt-6 mb-10 flex w-[calc(100%-2rem)] items-center gap-3 rounded-xl bg-white px-5 py-4 text-left"
-      >
-        <LogOut className="h-5 w-5 text-[var(--espresso-28)]" />
-        <span className="text-sm font-bold text-[var(--espresso-50)]">Ausloggen</span>
-      </button>
+      <div className="mt-6 bg-white pb-12 pt-1">
+        <button
+          onClick={() => supabase?.auth.signOut()}
+          className="flex w-full items-center gap-3 px-6 py-5"
+        >
+          <LogOut className="h-5 w-5 text-[var(--espresso-28)]" />
+          <span className="text-sm font-bold text-[var(--espresso-50)]">Ausloggen</span>
+        </button>
+      </div>
     </main>
   );
 }

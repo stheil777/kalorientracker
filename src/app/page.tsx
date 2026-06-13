@@ -297,10 +297,13 @@ export default function Home() {
     const userId = user.id;
 
     async function loadProfiles() {
+      const profileName: "Stephan" | "Jen" =
+        user!.email === "stheil.de@gmail.com" ? "Stephan" : "Jen";
+
       const { data, error } = await supabase!
         .from("profiles")
         .select("*")
-        .order("name", { ascending: false });
+        .eq("name", profileName);
 
       if (error) {
         setAuthMessage(error.message);
@@ -308,24 +311,17 @@ export default function Home() {
       }
 
       if (data.length === 0) {
+        const goals = defaultGoals[profileName];
         const { data: created, error: createError } = await supabase!
           .from("profiles")
           .insert([
             {
               user_id: userId,
-              name: "Stephan",
-              calorie_goal: defaultGoals.Stephan.calories,
-              protein_goal: defaultGoals.Stephan.protein,
-              carbs_goal: defaultGoals.Stephan.carbs,
-              fat_goal: defaultGoals.Stephan.fat,
-            },
-            {
-              user_id: userId,
-              name: "Jen",
-              calorie_goal: defaultGoals.Jen.calories,
-              protein_goal: defaultGoals.Jen.protein,
-              carbs_goal: defaultGoals.Jen.carbs,
-              fat_goal: defaultGoals.Jen.fat,
+              name: profileName,
+              calorie_goal: goals.calories,
+              protein_goal: goals.protein,
+              carbs_goal: goals.carbs,
+              fat_goal: goals.fat,
             },
           ])
           .select("*");
@@ -700,7 +696,7 @@ export default function Home() {
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-[var(--coral)] text-white shadow-[0_18px_36px_rgba(240,107,93,0.24)]">
               <Flame className="h-7 w-7" />
             </div>
-            <p className="kicker mb-4">Stephan & Jen</p>
+            <p className="kicker mb-4">Dein Food-Log</p>
             <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Kalorien lesbar machen.</h1>
             <p className="mt-5 max-w-sm text-[1.05rem] leading-8 text-[var(--espresso-50)]">
               Ein ruhiger Food-Log mit Makros, Favoriten und Tagesnotizen. Schnell genug für jeden Tag.
@@ -758,22 +754,6 @@ export default function Home() {
             <LogOut className="h-5 w-5" />
           </button>
         </header>
-
-        <div className="app-card reveal-in reveal-delay-1 mb-4 grid grid-cols-2 gap-1 p-1">
-          {profiles.map((profile) => (
-            <button
-              key={profile.id}
-              onClick={() => selectProfile(profile)}
-              className={`pressable rounded-md py-3 text-base font-black ${
-                activeProfile?.id === profile.id
-                  ? "bg-[var(--coral)] text-white shadow-[0_14px_28px_rgba(240,107,93,0.2)]"
-                  : "text-[var(--espresso-50)]"
-              }`}
-            >
-              {profile.name}
-            </button>
-          ))}
-        </div>
 
         {saveError && (
           <div className="mb-4 flex items-center justify-between rounded-md bg-[rgba(230,80,60,0.10)] px-4 py-3 text-sm font-bold text-[var(--coral-dark)]">

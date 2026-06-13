@@ -823,6 +823,83 @@ export default function Home() {
               </section>
             ) : null}
 
+            <AccordionSection title="Check-In" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
+              <form onSubmit={saveDailyNote} className="space-y-3">
+                <ToggleRow
+                  label="Training heute?"
+                  checked={dailyNote.training}
+                  onChange={(checked) => {
+                    const activity = checked ? (dailyNote.training_activity || "yoga") : "";
+                    const duration = checked ? (dailyNote.training_duration_min || "30") : "";
+                    const weight = parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65;
+                    const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 3.0;
+                    const kcal = checked ? String(Math.round(met * weight * (parseInt(duration) / 60))) : "";
+                    setDailyNote({ ...dailyNote, training: checked, training_activity: activity, training_duration_min: duration, training_kcal: kcal });
+                  }}
+                />
+                {dailyNote.training && (
+                  <TrainingPicker
+                    activity={dailyNote.training_activity}
+                    duration={dailyNote.training_duration_min}
+                    weight={parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65}
+                    onChange={(activity, duration, kcal) =>
+                      setDailyNote({ ...dailyNote, training_activity: activity, training_duration_min: duration, training_kcal: kcal })
+                    }
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <WaterStepper
+                    value={dailyNote.water_intake}
+                    onChange={(v) => setDailyNote({ ...dailyNote, water_intake: v })}
+                  />
+                  <WeightStepper
+                    value={dailyNote.weight}
+                    fallback={activeProfile?.current_weight ?? 80}
+                    onChange={(v) => setDailyNote({ ...dailyNote, weight: v })}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <ScoreStepper
+                    label="Sättigung"
+                    value={dailyNote.satiation}
+                    onChange={(v) => setDailyNote({ ...dailyNote, satiation: v })}
+                  />
+                  <ScoreStepper
+                    label="Stimmung"
+                    value={dailyNote.mood}
+                    onChange={(v) => setDailyNote({ ...dailyNote, mood: v })}
+                  />
+                  <ScoreStepper
+                    label="Energie"
+                    value={dailyNote.energy_level}
+                    onChange={(v) => setDailyNote({ ...dailyNote, energy_level: v })}
+                  />
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
+                  <input
+                    value={dailyNote.cravings}
+                    onChange={(e) => setDailyNote({ ...dailyNote, cravings: e.target.value })}
+                    className="field"
+                    placeholder="Worauf hattest du heute Lust?"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
+                  <textarea
+                    value={dailyNote.notes}
+                    onChange={(e) => setDailyNote({ ...dailyNote, notes: e.target.value })}
+                    rows={2}
+                    className="field h-auto min-h-20 py-3"
+                    placeholder="Besonderheiten, Beobachtungen..."
+                  />
+                </label>
+                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Check-In speichern"}
+                </button>
+              </form>
+            </AccordionSection>
+
             <section className="app-card reveal-in reveal-delay-2 mb-5 p-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
@@ -906,83 +983,6 @@ export default function Home() {
                 );
               })}
             </div>
-
-            <AccordionSection title="Check-In" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
-              <form onSubmit={saveDailyNote} className="space-y-3">
-                <ToggleRow
-                  label="Training heute?"
-                  checked={dailyNote.training}
-                  onChange={(checked) => {
-                    const activity = checked ? (dailyNote.training_activity || "yoga") : "";
-                    const duration = checked ? (dailyNote.training_duration_min || "30") : "";
-                    const weight = parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65;
-                    const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 3.0;
-                    const kcal = checked ? String(Math.round(met * weight * (parseInt(duration) / 60))) : "";
-                    setDailyNote({ ...dailyNote, training: checked, training_activity: activity, training_duration_min: duration, training_kcal: kcal });
-                  }}
-                />
-                {dailyNote.training && (
-                  <TrainingPicker
-                    activity={dailyNote.training_activity}
-                    duration={dailyNote.training_duration_min}
-                    weight={parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65}
-                    onChange={(activity, duration, kcal) =>
-                      setDailyNote({ ...dailyNote, training_activity: activity, training_duration_min: duration, training_kcal: kcal })
-                    }
-                  />
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <WaterStepper
-                    value={dailyNote.water_intake}
-                    onChange={(v) => setDailyNote({ ...dailyNote, water_intake: v })}
-                  />
-                  <WeightStepper
-                    value={dailyNote.weight}
-                    fallback={activeProfile?.current_weight ?? 80}
-                    onChange={(v) => setDailyNote({ ...dailyNote, weight: v })}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <ScoreStepper
-                    label="Sättigung"
-                    value={dailyNote.satiation}
-                    onChange={(v) => setDailyNote({ ...dailyNote, satiation: v })}
-                  />
-                  <ScoreStepper
-                    label="Stimmung"
-                    value={dailyNote.mood}
-                    onChange={(v) => setDailyNote({ ...dailyNote, mood: v })}
-                  />
-                  <ScoreStepper
-                    label="Energie"
-                    value={dailyNote.energy_level}
-                    onChange={(v) => setDailyNote({ ...dailyNote, energy_level: v })}
-                  />
-                </div>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
-                  <input
-                    value={dailyNote.cravings}
-                    onChange={(e) => setDailyNote({ ...dailyNote, cravings: e.target.value })}
-                    className="field"
-                    placeholder="Worauf hattest du heute Lust?"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
-                  <textarea
-                    value={dailyNote.notes}
-                    onChange={(e) => setDailyNote({ ...dailyNote, notes: e.target.value })}
-                    rows={2}
-                    className="field h-auto min-h-20 py-3"
-                    placeholder="Besonderheiten, Beobachtungen..."
-                  />
-                </label>
-                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
-                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Check-In speichern"}
-                </button>
-              </form>
-            </AccordionSection>
 
             {activeMealType && (
               <div className="mb-5 space-y-2">
@@ -1102,32 +1102,6 @@ export default function Home() {
                 )}
               </div>
             )}
-
-            <AccordionSection title="Alles heute" icon={<Utensils />}>
-              {meals.length ? (
-                <div className="space-y-2">
-                  {meals.map((meal) => (
-                    <div key={meal.id} className="soft-card flex items-center justify-between gap-3 p-3">
-                      <div>
-                        <p className="font-black text-[var(--espresso)]">{meal.food_name}</p>
-                        <p className="text-sm text-[var(--espresso-50)]">{mealLabels[meal.meal_type]} · {meal.amount || "—"}</p>
-                      </div>
-                      <div className="flex items-center gap-3 text-right">
-                        <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-10 w-10 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                        <div>
-                          <p className="serif text-2xl text-[var(--coral)]">{meal.calories}</p>
-                          <p className="text-xs text-[var(--espresso-50)]">kcal</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Empty text="Noch keine Mahlzeit für diesen Tag." />
-              )}
-            </AccordionSection>
           </>
         ) : null}
       </div>

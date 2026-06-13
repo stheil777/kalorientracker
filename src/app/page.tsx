@@ -218,6 +218,9 @@ export default function Home() {
   const [loading, setLoading] = useState(hasSupabaseConfig);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [resetMode, setResetMode] = useState<"idle" | "sending" | "sent">("idle");
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState("");
   const [date] = useState(todayISO());
@@ -285,7 +288,8 @@ export default function Home() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       setUser(session?.user ?? null);
     });
 
@@ -444,6 +448,10 @@ export default function Home() {
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) return;
+    if (authMode === "signup" && !privacyAccepted) {
+      setAuthMessage("Bitte stimme der Datenschutzerklärung zu.");
+      return;
+    }
     setSaving(true);
     setAuthMessage("");
 
@@ -458,6 +466,29 @@ export default function Home() {
       setAuthMessage("Account erstellt. Prüfe ggf. deine E-Mail-Bestätigung.");
     }
 
+    setSaving(false);
+  }
+
+  async function handleResetPassword() {
+    if (!supabase) return;
+    if (!email) { setAuthMessage("Bitte zuerst deine E-Mail eingeben."); return; }
+    setResetMode("sending");
+    setAuthMessage("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== "undefined" ? window.location.origin : "",
+    });
+    if (error) { setAuthMessage(error.message); setResetMode("idle"); }
+    else setResetMode("sent");
+  }
+
+  async function handleNewPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    setSaving(true);
+    setAuthMessage("");
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) { setAuthMessage(error.message); }
+    else { setPasswordRecovery(false); setAuthMessage(""); }
     setSaving(false);
   }
 
@@ -688,6 +719,31 @@ export default function Home() {
     );
   }
 
+  if (passwordRecovery && user) {
+    return (
+      <main className="app-shell px-5 py-8">
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
+          <div className="mb-8 reveal-in">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-[var(--coral)] text-white shadow-[0_18px_36px_rgba(240,107,93,0.24)]">
+              <Flame className="h-7 w-7" />
+            </div>
+            <h1 className="serif text-[2.6rem] leading-tight text-[var(--espresso)]">Neues Passwort</h1>
+            <p className="mt-3 text-sm text-[var(--espresso-50)]">Wähle ein neues Passwort für deinen Account.</p>
+          </div>
+          <form onSubmit={handleNewPassword} className="app-card reveal-in space-y-4 p-5">
+            <Input label="Neues Passwort" type="password" value={password} onChange={setPassword} required minLength={6} />
+            {authMessage && (
+              <p className="rounded-md bg-[rgba(230,182,74,0.14)] p-3 text-sm leading-6 text-[var(--espresso-70)]">{authMessage}</p>
+            )}
+            <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Passwort speichern"}
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
   if (!user) {
     return (
       <main className="app-shell px-5 py-8">
@@ -709,7 +765,7 @@ export default function Home() {
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setAuthMode(mode)}
+                  onClick={() => { setAuthMode(mode); setAuthMessage(""); setResetMode("idle"); }}
                   className={`pressable rounded-sm px-4 py-3 text-sm font-extrabold ${
                     authMode === mode
                       ? "bg-white text-[var(--coral-dark)] shadow-[0_10px_24px_rgba(52,40,32,0.06)]"
@@ -722,14 +778,46 @@ export default function Home() {
             </div>
             <Input label="E-Mail" type="email" value={email} onChange={setEmail} required />
             <Input label="Passwort" type="password" value={password} onChange={setPassword} required minLength={6} />
+            {authMode === "signup" && (
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--coral)]"
+                />
+                <span className="text-sm leading-5 text-[var(--espresso-50)]">
+                  Ich habe die{" "}
+                  <a href="/datenschutz" target="_blank" className="font-bold text-[var(--coral)] underline underline-offset-2">
+                    Datenschutzerklärung
+                  </a>{" "}
+                  gelesen und stimme zu.
+                </span>
+              </label>
+            )}
             {authMessage ? (
               <p className="rounded-md bg-[rgba(230,182,74,0.14)] p-3 text-sm leading-6 text-[var(--espresso-70)]">
                 {authMessage}
               </p>
             ) : null}
+            {resetMode === "sent" ? (
+              <p className="rounded-md bg-[rgba(80,180,120,0.12)] p-3 text-sm leading-6 text-[#2a7a50]">
+                E-Mail gesendet. Prüfe dein Postfach und klicke den Link.
+              </p>
+            ) : null}
             <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : authMode === "login" ? "Einloggen" : "Account erstellen"}
             </button>
+            {authMode === "login" && resetMode !== "sent" && (
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resetMode === "sending"}
+                className="pressable w-full text-center text-sm text-[var(--espresso-40)] hover:text-[var(--coral)]"
+              >
+                {resetMode === "sending" ? "Wird gesendet..." : "Passwort vergessen?"}
+              </button>
+            )}
           </form>
         </section>
       </main>

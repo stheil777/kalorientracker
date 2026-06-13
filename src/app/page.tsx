@@ -975,13 +975,19 @@ export default function Home() {
                     key={type}
                     type="button"
                     onClick={() => { setBatchMealType(type); setBatchStep("select"); setBatchPicks({}); setBatchQuery(""); setBatchOpen(true); }}
-                    className={`pressable flex flex-col items-start rounded-xl p-4 text-left transition-colors ${hasEntries ? "bg-[var(--coral)]" : "app-card"}`}
+                    className="pressable app-card relative flex flex-col items-start rounded-xl p-4 text-left"
+                    style={hasEntries ? { outline: "2px solid var(--coral)", outlineOffset: "-2px" } : undefined}
                   >
-                    <p className={`text-sm font-black ${hasEntries ? "text-white/80" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
-                    <p className={`serif mt-1 text-2xl leading-none ${hasEntries ? "text-white" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
+                    {hasEntries && (
+                      <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--coral)]">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <p className="text-sm font-black text-[var(--espresso-50)]">{mealLabels[type]}</p>
+                    <p className={`serif mt-1 text-2xl leading-none ${hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
                       {hasEntries ? `${typeKcal}` : "+"}
                     </p>
-                    {hasEntries && <p className="mt-0.5 text-xs text-white/70">kcal</p>}
+                    {hasEntries && <p className="mt-0.5 text-xs text-[var(--espresso-40,rgba(52,40,32,0.4))]">kcal</p>}
                   </button>
                 );
               })}
@@ -1244,6 +1250,7 @@ export default function Home() {
             })
           }
           onNext={() => setBatchStep("amounts")}
+          onBack={() => setBatchStep("select")}
           onSave={batchSaveAll}
           onQueryChange={setBatchQuery}
           onDeleteMeal={deleteMeal}
@@ -2050,48 +2057,49 @@ function useAnimatedNumber(target: number) {
 
 function BatchSheet({
   mealType, step, picks, query, favorites, existingMeals, saving,
-  onClose, onTogglePick, onUpdatePickAmount, onNext, onSave, onQueryChange, onDeleteMeal,
+  onClose, onTogglePick, onUpdatePickAmount, onNext, onBack, onSave, onQueryChange, onDeleteMeal,
 }: {
   mealType: MealType; step: "select" | "amounts"; picks: Record<string, BatchPickItem>;
   query: string; favorites: FavoriteMeal[]; existingMeals: MealEntry[]; saving: boolean;
   onClose: () => void; onTogglePick: (key: string, item: BatchPickItem) => void;
   onUpdatePickAmount: (key: string, grams: number, label: string) => void;
-  onNext: () => void; onSave: () => void; onQueryChange: (q: string) => void;
-  onDeleteMeal: (id: string) => void;
+  onNext: () => void; onBack: () => void; onSave: () => void;
+  onQueryChange: (q: string) => void; onDeleteMeal: (id: string) => void;
 }) {
   const label = mealLabels[mealType];
   const pickCount = Object.keys(picks).length;
   const q = query.toLowerCase();
-
   const filteredFavs = favorites.filter((f) => !q || f.name.toLowerCase().includes(q));
-  const filteredJen = [...JEN_FOODS]
-    .filter((f) => !q || f.name.toLowerCase().includes(q))
-    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+  const filteredJen = [...JEN_FOODS].filter((f) => !q || f.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "de"));
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col">
-      <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex max-h-[88vh] flex-col rounded-t-2xl bg-[#fafafa] shadow-[0_-20px_60px_rgba(52,40,32,0.22)]">
-        <div className="px-5 pb-3 pt-4">
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--espresso-14)]" />
-          <div className="flex items-center justify-between">
-            <h2 className="serif text-2xl text-[var(--espresso)]">{label}</h2>
-            <button type="button" onClick={onClose} className="pressable flex h-9 w-9 items-center justify-center rounded-md border border-[var(--espresso-14)]">
-              <X className="h-4 w-4 text-[var(--espresso-50)]" />
-            </button>
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute bottom-0 left-0 right-0 flex max-h-[90vh] flex-col overflow-hidden rounded-t-2xl bg-[#fafafa] shadow-[0_-20px_60px_rgba(52,40,32,0.22)]">
+
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--espresso-14)] px-5 py-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+              {step === "select" ? "Schritt 1 — Auswählen" : "Schritt 2 — Menge"}
+            </p>
+            <h2 className="serif text-2xl leading-tight text-[var(--espresso)]">{label}</h2>
           </div>
+          <button type="button" onClick={onClose} className="pressable flex h-10 w-10 items-center justify-center rounded-md bg-[rgba(52,40,32,0.06)]">
+            <X className="h-5 w-5 text-[var(--espresso-50)]" />
+          </button>
         </div>
 
         {step === "select" ? (
           <>
-            <div className="px-5 pb-3">
+            <div className="shrink-0 px-5 py-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--espresso-30,rgba(52,40,32,0.3))]" />
                 <input className="field pl-9" placeholder="Suchen..." value={query} onChange={(e) => onQueryChange(e.target.value)} />
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
               {existingMeals.length > 0 && (
                 <div className="mb-5">
                   <p className="kicker mb-2">Heute schon eingetragen</p>
@@ -2110,7 +2118,6 @@ function BatchSheet({
                   </div>
                 </div>
               )}
-
               {filteredFavs.length > 0 && (
                 <div className="mb-5">
                   <p className="kicker mb-2">Meine Favoriten</p>
@@ -2120,7 +2127,7 @@ function BatchSheet({
                       const selected = key in picks;
                       return (
                         <button key={fav.id} type="button" onClick={() => onTogglePick(key, { kind: "fav", fav })} className="pressable flex w-full items-center gap-3 py-3 text-left">
-                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-colors ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
+                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
                             {selected && <Check className="h-3.5 w-3.5 text-white" />}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -2133,7 +2140,6 @@ function BatchSheet({
                   </div>
                 </div>
               )}
-
               <div>
                 <p className="kicker mb-2">Jens Lebensmittel</p>
                 <div className="divide-y divide-[var(--espresso-14)]">
@@ -2145,7 +2151,7 @@ function BatchSheet({
                         onClick={() => onTogglePick(key, { kind: "jen", food, grams: food.stueck_g ?? 100, stueckG: food.stueck_g, label: food.stueck_g ? "1 Stück" : "100 g" })}
                         className="pressable flex w-full items-center gap-3 py-3 text-left"
                       >
-                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-colors ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
                           {selected && <Check className="h-3.5 w-3.5 text-white" />}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -2159,19 +2165,20 @@ function BatchSheet({
               </div>
             </div>
 
-            {pickCount > 0 && (
-              <div className="border-t border-[var(--espresso-14)] px-5 py-4">
+            <div className="shrink-0 border-t border-[var(--espresso-14)] px-5 py-4">
+              {pickCount > 0 ? (
                 <button type="button" onClick={onNext} className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
                   {pickCount} ausgewählt → Menge festlegen
                 </button>
-              </div>
-            )}
+              ) : (
+                <p className="text-center text-sm text-[var(--espresso-40,rgba(52,40,32,0.4))]">Lebensmittel antippen zum Auswählen</p>
+              )}
+            </div>
           </>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-5 pb-4">
-              <p className="kicker mb-4">Menge anpassen</p>
-              <div className="space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="space-y-5">
                 {Object.entries(picks).map(([key, pick]) => {
                   if (pick.kind === "fav") {
                     return (
@@ -2183,7 +2190,7 @@ function BatchSheet({
                   }
                   return (
                     <div key={key} className="soft-card p-4">
-                      <p className="mb-3 font-black text-[var(--espresso)]">{pick.food.name}</p>
+                      <p className="mb-4 font-black text-[var(--espresso)]">{pick.food.name}</p>
                       <AmountStepper
                         amount={pick.grams}
                         stueckG={pick.stueckG}
@@ -2194,9 +2201,12 @@ function BatchSheet({
                 })}
               </div>
             </div>
-            <div className="border-t border-[var(--espresso-14)] px-5 py-4">
+            <div className="shrink-0 border-t border-[var(--espresso-14)] px-5 py-4 space-y-2">
               <button type="button" onClick={onSave} className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
                 {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : `${pickCount} Mahlzeit${pickCount !== 1 ? "en" : ""} hinzufügen`}
+              </button>
+              <button type="button" onClick={onBack} className="pressable flex h-10 w-full items-center justify-center rounded-md text-sm font-bold text-[var(--espresso-50)]">
+                ← Zurück zur Auswahl
               </button>
             </div>
           </>

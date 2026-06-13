@@ -15,6 +15,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   Activity,
   Calculator,
+  ChevronDown,
   Droplets,
   Flame,
   Heart,
@@ -799,8 +800,67 @@ export default function Home() {
               </section>
             ) : null}
 
-            <section className="app-card reveal-in reveal-delay-3 mb-5 p-4">
-              <SectionTitle icon={<Plus />} title="Mahlzeit eintragen" />
+            <AccordionSection title="Check-In" icon={<Heart />} defaultOpen>
+              <form onSubmit={saveDailyNote} className="space-y-3">
+                <ToggleRow
+                  label="Training heute?"
+                  checked={dailyNote.training}
+                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked })}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <WaterStepper
+                    value={dailyNote.water_intake}
+                    onChange={(v) => setDailyNote({ ...dailyNote, water_intake: v })}
+                  />
+                  <WeightStepper
+                    value={dailyNote.weight}
+                    fallback={activeProfile?.current_weight ?? 80}
+                    onChange={(v) => setDailyNote({ ...dailyNote, weight: v })}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <ScoreStepper
+                    label="Sättigung"
+                    value={dailyNote.satiation}
+                    onChange={(v) => setDailyNote({ ...dailyNote, satiation: v })}
+                  />
+                  <ScoreStepper
+                    label="Stimmung"
+                    value={dailyNote.mood}
+                    onChange={(v) => setDailyNote({ ...dailyNote, mood: v })}
+                  />
+                  <ScoreStepper
+                    label="Energie"
+                    value={dailyNote.energy_level}
+                    onChange={(v) => setDailyNote({ ...dailyNote, energy_level: v })}
+                  />
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
+                  <input
+                    value={dailyNote.cravings}
+                    onChange={(e) => setDailyNote({ ...dailyNote, cravings: e.target.value })}
+                    className="field"
+                    placeholder="Worauf hattest du heute Lust?"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
+                  <textarea
+                    value={dailyNote.notes}
+                    onChange={(e) => setDailyNote({ ...dailyNote, notes: e.target.value })}
+                    rows={2}
+                    className="field h-auto min-h-20 py-3"
+                    placeholder="Besonderheiten, Beobachtungen..."
+                  />
+                </label>
+                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Check-In speichern"}
+                </button>
+              </form>
+            </AccordionSection>
+
+            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />} defaultOpen>
               <form onSubmit={addMeal} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(mealLabels) as MealType[]).map((type) => (
@@ -853,9 +913,9 @@ export default function Home() {
                   {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Mahlzeit speichern"}
                 </button>
               </form>
-            </section>
+            </AccordionSection>
 
-            <Section title="Favoriten" icon={<Star />}>
+            <AccordionSection title="Favoriten" icon={<Star />}>
               {favorites.length ? (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {[...favorites]
@@ -897,9 +957,9 @@ export default function Home() {
               ) : (
                 <Empty text="Speichere eine Mahlzeit als Favorit, dann ist sie hier mit einem Tap verfügbar." />
               )}
-            </Section>
+            </AccordionSection>
 
-            <Section title="Heute gegessen" icon={<Utensils />}>
+            <AccordionSection title="Heute gegessen" icon={<Utensils />} defaultOpen>
               {meals.length ? (
                 <div className="space-y-2">
                   {meals.map((meal) => (
@@ -930,48 +990,7 @@ export default function Home() {
               ) : (
                 <Empty text="Noch keine Mahlzeit für diesen Tag." />
               )}
-            </Section>
-
-            <Section title="Check-In" icon={<Heart />}>
-              <form onSubmit={saveDailyNote} className="space-y-3">
-                <ToggleRow
-                  label="Training heute?"
-                  checked={dailyNote.training}
-                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked })}
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <IconInput icon={<Droplets />} label="Wasser l" type="number" step="0.1" value={dailyNote.water_intake} onChange={(value) => setDailyNote({ ...dailyNote, water_intake: value })} />
-                  <IconInput icon={<Activity />} label="Gewicht kg" type="number" value={dailyNote.weight} onChange={(value) => setDailyNote({ ...dailyNote, weight: value })} />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <IconInput icon={<Zap />} label="Sättigung 1-5" type="number" min={1} max={5} value={dailyNote.satiation} onChange={(value) => setDailyNote({ ...dailyNote, satiation: value })} />
-                  <IconInput icon={<Heart />} label="Stimmung 1-5" type="number" min={1} max={5} value={dailyNote.mood} onChange={(value) => setDailyNote({ ...dailyNote, mood: value })} />
-                  <IconInput icon={<Moon />} label="Energie 1-5" type="number" min={1} max={5} value={dailyNote.energy_level} onChange={(value) => setDailyNote({ ...dailyNote, energy_level: value })} />
-                </div>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste / Cravings</span>
-                  <input
-                    value={dailyNote.cravings}
-                    onChange={(event) => setDailyNote({ ...dailyNote, cravings: event.target.value })}
-                    className="field"
-                    placeholder="Worauf hattest du heute Lust?"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
-                  <textarea
-                    value={dailyNote.notes}
-                    onChange={(event) => setDailyNote({ ...dailyNote, notes: event.target.value })}
-                    rows={2}
-                    className="field h-auto min-h-20 py-3"
-                    placeholder="Besonderheiten, Beobachtungen..."
-                  />
-                </label>
-                <button className="pressable h-14 w-full rounded-md border border-[var(--coral)] bg-white/70 px-5 text-base font-black text-[var(--coral-dark)]">
-                  Check-In speichern
-                </button>
-              </form>
-            </Section>
+            </AccordionSection>
           </>
         ) : null}
       </div>
@@ -1001,6 +1020,152 @@ function Section({ title, icon, children }: { title: string; icon: ReactNode; ch
       <SectionTitle icon={icon} title={title} />
       {children}
     </section>
+  );
+}
+
+function AccordionSection({
+  title,
+  icon,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="app-card reveal-in mb-4 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="pressable flex w-full items-center justify-between px-4 py-4"
+      >
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]">
+            {icon}
+          </span>
+          <span className="serif text-2xl text-[var(--espresso)]">{title}</span>
+        </div>
+        <ChevronDown
+          className={`h-5 w-5 text-[var(--espresso-50)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </section>
+  );
+}
+
+function WaterStepper({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const liters = parseFloat(value) || 0;
+  const dec = (n: number) => Math.round(n * 100) / 100;
+  return (
+    <div>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Wasser</span>
+      <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <button
+          type="button"
+          onClick={() => onChange(String(dec(Math.max(0, liters - 0.25))))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          -
+        </button>
+        <div className="text-center">
+          <span className="serif text-2xl text-[var(--espresso)]">{liters.toFixed(2)}</span>
+          <span className="ml-1 text-sm text-[var(--espresso-50)]">l</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(String(dec(liters + 0.25)))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WeightStepper({
+  value,
+  fallback,
+  onChange,
+}: {
+  value: string;
+  fallback: number;
+  onChange: (v: string) => void;
+}) {
+  const kg = parseFloat(value) || fallback;
+  const dec = (n: number) => Math.round(n * 10) / 10;
+  return (
+    <div>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gewicht</span>
+      <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <button
+          type="button"
+          onClick={() => onChange(dec(Math.max(30, kg - 0.1)).toFixed(1))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          -
+        </button>
+        <div className="text-center">
+          <span className="serif text-2xl text-[var(--espresso)]">{kg.toFixed(1)}</span>
+          <span className="ml-1 text-sm text-[var(--espresso-50)]">kg</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(dec(kg + 0.1).toFixed(1))}
+          className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const score = Math.min(5, Math.max(1, parseInt(value) || 3));
+  return (
+    <div>
+      <span className="mb-2 block text-xs font-bold text-[var(--espresso-50)]">{label}</span>
+      <div className="soft-card flex flex-col items-center gap-2 rounded-md py-3">
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((d) => (
+            <span
+              key={d}
+              className={`h-2 w-2 rounded-full ${d <= score ? "bg-[var(--coral)]" : "bg-[rgba(52,40,32,0.14)]"}`}
+            />
+          ))}
+        </div>
+        <div className="flex w-full items-center justify-between px-1">
+          <button
+            type="button"
+            onClick={() => onChange(String(Math.max(1, score - 1)))}
+            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            -
+          </button>
+          <span className="serif text-xl text-[var(--espresso)]">{score}</span>
+          <button
+            type="button"
+            onClick={() => onChange(String(Math.min(5, score + 1)))}
+            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -783,20 +783,22 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <button
-        onClick={() => supabase?.auth.signOut()}
-        className="pressable fixed right-5 top-5 z-40 flex h-11 w-11 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)] backdrop-blur-sm"
-        aria-label="Ausloggen"
-      >
-        <LogOut className="h-5 w-5" />
-      </button>
       <div className="mx-auto max-w-md px-4 pb-28 pt-12">
-        <header className="reveal-in mb-6">
-          <p className="kicker mb-2">{formatGermanDate(date)}</p>
-          <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
-            Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
-          </h1>
-          <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+        <header className="reveal-in mb-6 flex items-start justify-between">
+          <div>
+            <p className="kicker mb-2">{formatGermanDate(date)}</p>
+            <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
+              Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
+            </h1>
+            <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+          </div>
+          <button
+            onClick={() => supabase?.auth.signOut()}
+            className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)]"
+            aria-label="Ausloggen"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
         </header>
 
         {saveError && (

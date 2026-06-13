@@ -6,7 +6,7 @@ async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments`,
-      { signal: AbortSignal.timeout(5000) },
+      { signal: AbortSignal.timeout(5000), headers: { "User-Agent": "KalorienTracker/1.0 (stheil.de@gmail.com)" } },
     );
     if (!res.ok) return [];
     const data = await res.json();

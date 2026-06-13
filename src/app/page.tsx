@@ -531,7 +531,7 @@ export default function Home() {
     setSaving(true);
     const calculated = calculateTargets(goalForm);
 
-    const { data } = await supabase
+    const { data, error: saveError } = await supabase
       .from("profiles")
       .update({
         calorie_goal: calculated?.calories ?? (Number(goalForm.calorie_goal) || activeProfile.calorie_goal),
@@ -560,6 +560,7 @@ export default function Home() {
       .select("*")
       .single();
 
+    if (saveError) { setSaveError("Profil konnte nicht gespeichert werden: " + saveError.message); setSaving(false); return; }
     if (data) {
       setProfiles((current) => current.map((profile) => (profile.id === data.id ? (data as Profile) : profile)));
       setEditingGoals(false);

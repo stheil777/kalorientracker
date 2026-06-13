@@ -902,7 +902,7 @@ export default function Home() {
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
-                  <p className="serif text-[4.4rem] leading-none text-[var(--coral)]">
+                  <p className="serif text-[4.85rem] leading-none text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (

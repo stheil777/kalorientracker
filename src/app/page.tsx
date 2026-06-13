@@ -216,6 +216,7 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig);
   const [saving, setSaving] = useState(false);
@@ -473,7 +474,7 @@ export default function Home() {
     const result =
       authMode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName.trim() } } });
 
     if (result.error) {
       setAuthMessage(result.error.message);
@@ -732,6 +733,9 @@ export default function Home() {
             <Input label="E-Mail" type="email" value={email} onChange={setEmail} required />
             <Input label="Passwort" type="password" value={password} onChange={setPassword} required minLength={6} />
             {authMode === "signup" && (
+              <Input label="Vorname" type="text" value={firstName} onChange={setFirstName} required />
+            )}
+            {authMode === "signup" && (
               <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
@@ -783,8 +787,9 @@ export default function Home() {
         <header className="reveal-in mb-6">
           <p className="kicker mb-2">{formatGermanDate(date)}</p>
           <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
-            Heute <span className="italic text-[var(--coral)]">tracken.</span>
+            Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
           </h1>
+          <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
         </header>
         <button
           onClick={() => supabase?.auth.signOut()}

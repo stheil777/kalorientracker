@@ -5,16 +5,16 @@ import type { FoodResult } from "@/lib/types";
 async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments`,
+      `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=8&json=true`,
       { signal: AbortSignal.timeout(5000), headers: { "User-Agent": "KalorienTracker/1.0 (stheil.de@gmail.com)" } },
     );
     if (!res.ok) return [];
     const data = await res.json();
     return (
-      (data.products ?? [])
+      (data.hits ?? [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((p: any) => p.product_name && p.nutriments?.["energy-kcal_100g"])
-        .slice(0, 5)
+        .slice(0, 6)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((p: any) => ({
           id: `off-${p.code}`,

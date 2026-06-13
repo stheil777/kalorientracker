@@ -308,7 +308,7 @@ export default function Home() {
   }, [user, activeProfileId, date]);
 
   useEffect(() => {
-    if (foodQuery.length < 2) {
+    if (foodQuery.length < 1) {
       setFoodResults([]);
       setShowFoodResults(false);
       return;
@@ -323,7 +323,7 @@ export default function Home() {
       } finally {
         setFoodSearching(false);
       }
-    }, 400);
+    }, 200);
     return () => clearTimeout(timer);
   }, [foodQuery]);
 
@@ -1147,44 +1147,26 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   );
 }
 
-const AMOUNT_PRESETS = [50, 80, 100, 120, 150, 200];
-
 function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: number) => void }) {
   return (
     <div>
       <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Menge</span>
-      <div className="flex gap-1.5 mb-3 flex-wrap">
-        {AMOUNT_PRESETS.map((g) => (
-          <button
-            key={g}
-            type="button"
-            onClick={() => onChange(g)}
-            className={`pressable h-9 rounded-md px-3 text-sm font-black transition-colors ${
-              amount === g
-                ? "bg-[var(--coral)] text-white"
-                : "soft-card text-[var(--espresso-50)]"
-            }`}
-          >
-            {g} g
-          </button>
-        ))}
-      </div>
       <div className="soft-card flex items-center justify-between rounded-md p-1">
         <button
           type="button"
           onClick={() => onChange(amount - 10)}
-          className="pressable flex h-12 w-14 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
         >
           −
         </button>
         <div className="text-center">
-          <span className="serif text-3xl text-[var(--espresso)]">{amount}</span>
-          <span className="ml-1 text-sm text-[var(--espresso-50)]">g</span>
+          <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
+          <span className="ml-1.5 text-base text-[var(--espresso-50)]">g</span>
         </div>
         <button
           type="button"
           onClick={() => onChange(amount + 10)}
-          className="pressable flex h-12 w-14 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
         >
           +
         </button>

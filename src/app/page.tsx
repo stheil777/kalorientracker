@@ -31,6 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
+import { JEN_FOODS } from "@/lib/jen-foods";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type {
   ActivityLevel,
@@ -75,6 +76,9 @@ const blankNote = {
   water_intake: "",
   sleep_quality: "3",
   energy_level: "3",
+  satiation: "3",
+  mood: "3",
+  cravings: "",
   notes: "",
 };
 
@@ -90,6 +94,15 @@ const blankGoals = {
   activity_level: "moderate" as ActivityLevel,
   goal_type: "maintain" as GoalType,
   diet_type: "balanced" as DietType,
+  target_weight: "",
+  training_frequency: "3",
+  cycle_relevant: false,
+  sleep_goal_hours: "",
+  intolerances: "",
+  no_go_foods: "",
+  favorite_foods: "",
+  alcohol_frequency: "selten",
+  alcohol_amount: "",
 };
 
 const activityLabels: Record<ActivityLevel, string> = {
@@ -134,6 +147,15 @@ function goalsFromProfile(profile: Profile) {
     activity_level: profile.activity_level ?? "moderate",
     goal_type: profile.goal_type ?? "maintain",
     diet_type: profile.diet_type ?? "balanced",
+    target_weight: profile.target_weight?.toString() ?? "",
+    training_frequency: profile.training_frequency?.toString() ?? "3",
+    cycle_relevant: profile.cycle_relevant ?? false,
+    sleep_goal_hours: profile.sleep_goal_hours?.toString() ?? "",
+    intolerances: profile.intolerances ?? "",
+    no_go_foods: profile.no_go_foods ?? "",
+    favorite_foods: profile.favorite_foods ?? "",
+    alcohol_frequency: profile.alcohol_frequency ?? "selten",
+    alcohol_amount: profile.alcohol_amount ?? "",
   };
 }
 
@@ -196,8 +218,18 @@ export default function Home() {
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
   const [foodSearching, setFoodSearching] = useState(false);
   const [showFoodResults, setShowFoodResults] = useState(false);
+  const [foodFocused, setFoodFocused] = useState(false);
   const [selectedFoodPer100g, setSelectedFoodPer100g] = useState<FoodResult["per100g"] | null>(null);
   const [selectedAmount, setSelectedAmount] = useState(100);
+
+  const jenMatches = useMemo(() => {
+    if (!foodFocused) return [];
+    const q = foodQuery.trim().toLowerCase();
+    if (!q) return JEN_FOODS.slice(0, 8);
+    return JEN_FOODS.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 8);
+  }, [foodQuery, foodFocused]);
+
+  const showDropdown = foodFocused && (jenMatches.length > 0 || showFoodResults || foodSearching);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
@@ -355,6 +387,9 @@ export default function Home() {
             water_intake: note.water_intake?.toString() ?? "",
             sleep_quality: note.sleep_quality?.toString() ?? "3",
             energy_level: note.energy_level?.toString() ?? "3",
+            satiation: note.satiation?.toString() ?? "3",
+            mood: note.mood?.toString() ?? "3",
+            cravings: note.cravings ?? "",
             notes: note.notes ?? "",
           }
         : blankNote,
@@ -440,7 +475,9 @@ export default function Home() {
       });
     }
 
-    setMealForm(blankMeal);
+    setMealForm((current) => ({ ...blankMeal, meal_type: current.meal_type }));
+    setSelectedFoodPer100g(null);
+    setSelectedAmount(100);
     await refreshDay();
     await refreshFavorites();
     setSaving(false);
@@ -502,6 +539,15 @@ export default function Home() {
         goal_type: goalForm.goal_type,
         diet_type: goalForm.diet_type,
         calculated_tdee: calculated?.tdee ?? null,
+        target_weight: Number(goalForm.target_weight) || null,
+        training_frequency: Number(goalForm.training_frequency) || null,
+        cycle_relevant: goalForm.cycle_relevant,
+        sleep_goal_hours: Number(goalForm.sleep_goal_hours) || null,
+        intolerances: goalForm.intolerances.trim() || null,
+        no_go_foods: goalForm.no_go_foods.trim() || null,
+        favorite_foods: goalForm.favorite_foods.trim() || null,
+        alcohol_frequency: goalForm.alcohol_frequency || null,
+        alcohol_amount: goalForm.alcohol_amount.trim() || null,
       })
       .eq("id", activeProfile.id)
       .select("*")
@@ -533,6 +579,7 @@ export default function Home() {
     setFoodQuery("");
     setFoodResults([]);
     setShowFoodResults(false);
+    setFoodFocused(false);
   }
 
   function changeAmount(grams: number) {
@@ -577,6 +624,9 @@ export default function Home() {
         water_intake: dailyNote.water_intake ? Number(dailyNote.water_intake) : null,
         sleep_quality: dailyNote.sleep_quality ? Number(dailyNote.sleep_quality) : null,
         energy_level: dailyNote.energy_level ? Number(dailyNote.energy_level) : null,
+        satiation: dailyNote.satiation ? Number(dailyNote.satiation) : null,
+        mood: dailyNote.mood ? Number(dailyNote.mood) : null,
+        cravings: dailyNote.cravings.trim() || null,
         notes: dailyNote.notes.trim() || null,
       },
       { onConflict: "user_id,profile_id,date" },
@@ -722,6 +772,10 @@ export default function Home() {
                 <Macro label="Carbs" value={totals.carbs} goal={activeProfile.carbs_goal} />
                 <Macro label="Fett" value={totals.fat} goal={activeProfile.fat_goal} />
               </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <WaterStatus water={dailyNote.water_intake} />
+                <BodyScore energy={dailyNote.energy_level} mood={dailyNote.mood} satiation={dailyNote.satiation} />
+              </div>
               <button
                 type="button"
                 onClick={toggleGoals}
@@ -766,16 +820,18 @@ export default function Home() {
                 </div>
                 <FoodSearch
                   query={mealForm.food_name}
-                  results={foodResults}
+                  jenFoods={jenMatches}
+                  apiResults={foodResults}
                   searching={foodSearching}
-                  showResults={showFoodResults}
+                  showResults={showDropdown}
                   onQueryChange={(value) => {
                     setMealForm({ ...mealForm, food_name: value });
                     setFoodQuery(value);
                     setSelectedFoodPer100g(null);
                   }}
                   onSelect={selectFood}
-                  onDismiss={() => setShowFoodResults(false)}
+                  onFocus={() => setFoodFocused(true)}
+                  onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
                 />
                 {selectedFoodPer100g ? (
                   <AmountStepper amount={selectedAmount} onChange={changeAmount} />
@@ -802,25 +858,41 @@ export default function Home() {
             <Section title="Favoriten" icon={<Star />}>
               {favorites.length ? (
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {favorites.map((favorite) => (
-                    <div
-                      key={favorite.id}
-                      className="min-w-40 rounded-md border border-[rgba(217,164,65,0.22)] bg-[rgba(255,255,255,0.7)] p-3 text-sm"
-                    >
-                      <button onClick={() => quickAddFavorite(favorite)} className="pressable w-full text-left">
-                        <p className="font-black text-[var(--espresso)]">{favorite.name}</p>
-                        <p className="mt-1 text-[var(--espresso-50)]">{favorite.calories} kcal · tap zum Adden</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteFavorite(favorite.id)}
-                        className="pressable mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-sm border border-[var(--espresso-14)] text-xs font-black text-[var(--espresso-50)]"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Entfernen
-                      </button>
-                    </div>
-                  ))}
+                  {[...favorites]
+                    .sort((a, b) => {
+                      const aMatch = a.meal_type === mealForm.meal_type ? 0 : 1;
+                      const bMatch = b.meal_type === mealForm.meal_type ? 0 : 1;
+                      return aMatch - bMatch;
+                    })
+                    .map((favorite) => {
+                      const isMatch = favorite.meal_type === mealForm.meal_type;
+                      return (
+                        <div
+                          key={favorite.id}
+                          className={`min-w-40 rounded-md border p-3 text-sm transition-opacity ${
+                            isMatch
+                              ? "border-[rgba(217,164,65,0.22)] bg-[rgba(255,255,255,0.7)]"
+                              : "border-[var(--espresso-14)] bg-[rgba(255,255,255,0.4)] opacity-50"
+                          }`}
+                        >
+                          <button onClick={() => quickAddFavorite(favorite)} className="pressable w-full text-left">
+                            <p className="font-black text-[var(--espresso)]">{favorite.name}</p>
+                            <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-[var(--espresso-50)]">
+                              {mealLabels[favorite.meal_type]}
+                            </p>
+                            <p className="mt-1 text-[var(--espresso-50)]">{favorite.calories} kcal</p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteFavorite(favorite.id)}
+                            className="pressable mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-sm border border-[var(--espresso-14)] text-xs font-black text-[var(--espresso-50)]"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Entfernen
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
               ) : (
                 <Empty text="Speichere eine Mahlzeit als Favorit, dann ist sie hier mit einem Tap verfügbar." />
@@ -860,31 +932,43 @@ export default function Home() {
               )}
             </Section>
 
-            <Section title="Tagesnotizen" icon={<Heart />}>
+            <Section title="Check-In" icon={<Heart />}>
               <form onSubmit={saveDailyNote} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <IconInput icon={<Activity />} label="Gewicht kg" type="number" value={dailyNote.weight} onChange={(value) => setDailyNote({ ...dailyNote, weight: value })} />
-                  <IconInput icon={<Droplets />} label="Wasser l" type="number" value={dailyNote.water_intake} onChange={(value) => setDailyNote({ ...dailyNote, water_intake: value })} />
-                  <IconInput icon={<Moon />} label="Schlaf 1-5" type="number" min={1} max={5} value={dailyNote.sleep_quality} onChange={(value) => setDailyNote({ ...dailyNote, sleep_quality: value })} />
-                  <IconInput icon={<Zap />} label="Energie 1-5" type="number" min={1} max={5} value={dailyNote.energy_level} onChange={(value) => setDailyNote({ ...dailyNote, energy_level: value })} />
-                </div>
                 <ToggleRow
                   label="Training heute?"
                   checked={dailyNote.training}
                   onChange={(checked) => setDailyNote({ ...dailyNote, training: checked })}
                 />
+                <div className="grid grid-cols-2 gap-3">
+                  <IconInput icon={<Droplets />} label="Wasser l" type="number" step="0.1" value={dailyNote.water_intake} onChange={(value) => setDailyNote({ ...dailyNote, water_intake: value })} />
+                  <IconInput icon={<Activity />} label="Gewicht kg" type="number" value={dailyNote.weight} onChange={(value) => setDailyNote({ ...dailyNote, weight: value })} />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <IconInput icon={<Zap />} label="Sättigung 1-5" type="number" min={1} max={5} value={dailyNote.satiation} onChange={(value) => setDailyNote({ ...dailyNote, satiation: value })} />
+                  <IconInput icon={<Heart />} label="Stimmung 1-5" type="number" min={1} max={5} value={dailyNote.mood} onChange={(value) => setDailyNote({ ...dailyNote, mood: value })} />
+                  <IconInput icon={<Moon />} label="Energie 1-5" type="number" min={1} max={5} value={dailyNote.energy_level} onChange={(value) => setDailyNote({ ...dailyNote, energy_level: value })} />
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste / Cravings</span>
+                  <input
+                    value={dailyNote.cravings}
+                    onChange={(event) => setDailyNote({ ...dailyNote, cravings: event.target.value })}
+                    className="field"
+                    placeholder="Worauf hattest du heute Lust?"
+                  />
+                </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
                   <textarea
                     value={dailyNote.notes}
                     onChange={(event) => setDailyNote({ ...dailyNote, notes: event.target.value })}
-                    rows={3}
-                    className="field h-auto min-h-28 py-3"
-                    placeholder="Hunger, Stimmung, Besonderheiten..."
+                    rows={2}
+                    className="field h-auto min-h-20 py-3"
+                    placeholder="Besonderheiten, Beobachtungen..."
                   />
                 </label>
                 <button className="pressable h-14 w-full rounded-md border border-[var(--coral)] bg-white/70 px-5 text-base font-black text-[var(--coral-dark)]">
-                  Notizen speichern
+                  Check-In speichern
                 </button>
               </form>
             </Section>
@@ -1015,6 +1099,78 @@ function ProfileSetupForm({
           </p>
         </div>
       ) : null}
+
+      <div className="pt-2">
+        <p className="kicker mb-3">Persönliches Profil</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Wunschgewicht kg"
+              type="number"
+              value={goalForm.target_weight}
+              onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })}
+            />
+            <SelectField
+              label="Training / Woche"
+              value={goalForm.training_frequency}
+              onChange={(value) => setGoalForm({ ...goalForm, training_frequency: value })}
+              options={[
+                { value: "0", label: "Kein Training" },
+                { value: "1", label: "1 Tag" },
+                { value: "2", label: "2 Tage" },
+                { value: "3", label: "3 Tage" },
+                { value: "4", label: "4 Tage" },
+                { value: "5", label: "5 Tage" },
+                { value: "6", label: "6 Tage" },
+                { value: "7", label: "Täglich" },
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Schlafziel Stunden"
+              type="number"
+              step="0.5"
+              value={goalForm.sleep_goal_hours}
+              onChange={(value) => setGoalForm({ ...goalForm, sleep_goal_hours: value })}
+            />
+            <SelectField
+              label="Alkohol"
+              value={goalForm.alcohol_frequency}
+              onChange={(value) => setGoalForm({ ...goalForm, alcohol_frequency: value })}
+              options={[
+                { value: "nie", label: "Nie" },
+                { value: "selten", label: "Selten" },
+                { value: "1-2x", label: "1-2x pro Woche" },
+                { value: "oefter", label: "Öfter" },
+              ]}
+            />
+          </div>
+          <ToggleRow
+            label="Zyklus / Periode relevant?"
+            checked={goalForm.cycle_relevant}
+            onChange={(checked) => setGoalForm({ ...goalForm, cycle_relevant: checked })}
+          />
+          <TextArea
+            label="Unverträglichkeiten"
+            value={goalForm.intolerances}
+            onChange={(value) => setGoalForm({ ...goalForm, intolerances: value })}
+            placeholder="z.B. Laktose, Gluten, Nüsse..."
+          />
+          <TextArea
+            label="No-go Foods"
+            value={goalForm.no_go_foods}
+            onChange={(value) => setGoalForm({ ...goalForm, no_go_foods: value })}
+            placeholder="Was kommt gar nicht auf den Teller?"
+          />
+          <TextArea
+            label="Lieblingsfoods"
+            value={goalForm.favorite_foods}
+            onChange={(value) => setGoalForm({ ...goalForm, favorite_foods: value })}
+            placeholder="Was isst du besonders gerne?"
+          />
+        </div>
+      </div>
 
       <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
         {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Profil speichern"}
@@ -1157,7 +1313,7 @@ function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: num
           onClick={() => onChange(amount - 10)}
           className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
         >
-          −
+          -
         </button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
@@ -1177,19 +1333,23 @@ function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: num
 
 function FoodSearch({
   query,
-  results,
+  jenFoods,
+  apiResults,
   searching,
   showResults,
   onQueryChange,
   onSelect,
+  onFocus,
   onDismiss,
 }: {
   query: string;
-  results: FoodResult[];
+  jenFoods: FoodResult[];
+  apiResults: FoodResult[];
   searching: boolean;
   showResults: boolean;
   onQueryChange: (value: string) => void;
   onSelect: (food: FoodResult) => void;
+  onFocus: () => void;
   onDismiss: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1204,6 +1364,10 @@ function FoodSearch({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onDismiss]);
 
+  const showBoth = jenFoods.length > 0 && apiResults.length > 0;
+  const isEmpty = jenFoods.length === 0 && apiResults.length === 0;
+  const showEmpty = showResults && isEmpty && !searching && query.length >= 2;
+
   return (
     <div ref={containerRef} className="relative">
       <label className="block">
@@ -1212,6 +1376,7 @@ function FoodSearch({
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={onFocus}
             placeholder="Tippen zum Suchen..."
             className="field pr-16"
             required
@@ -1227,37 +1392,42 @@ function FoodSearch({
         </div>
       </label>
 
-      {showResults && results.length > 0 ? (
+      {showResults && !isEmpty ? (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[var(--espresso-14)] bg-white shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
-          {results.map((food) => (
-            <button
-              key={food.id}
-              type="button"
-              onClick={() => onSelect(food)}
-              className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
-                  {food.per100g.fat >= 8 ? (
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(240,107,93,0.12)] text-[var(--coral-dark)]">in Öl</span>
-                  ) : food.per100g.fat <= 2 && food.per100g.calories < 120 ? (
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(52,40,32,0.07)] text-[var(--espresso-50)]">in Wasser</span>
-                  ) : null}
-                </div>
+          <div className="max-h-72 overflow-y-auto overscroll-contain">
+            {jenFoods.length > 0 && (
+              <>
+                {showBoth && (
+                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(241,231,214,0.7)]">
+                    Jens Lebensmittel
+                  </div>
+                )}
+                {jenFoods.map((food) => (
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                ))}
+              </>
+            )}
+            {searching && apiResults.length === 0 && query.length >= 2 && (
+              <div className="flex items-center gap-2 px-4 py-3 text-xs text-[var(--espresso-50)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Datenbank wird durchsucht...
               </div>
-              <div className="shrink-0 text-right">
-                <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
-                <p className="text-xs text-[var(--espresso-50)]">kcal</p>
-                <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
-                  P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
-                </p>
-              </div>
-            </button>
-          ))}
+            )}
+            {apiResults.length > 0 && (
+              <>
+                {showBoth && (
+                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(52,40,32,0.04)]">
+                    Datenbank
+                  </div>
+                )}
+                {apiResults.map((food) => (
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                ))}
+              </>
+            )}
+          </div>
         </div>
-      ) : showResults && !searching ? (
+      ) : showEmpty ? (
         <div className="absolute z-10 mt-1 w-full rounded-md border border-[var(--espresso-14)] bg-white px-4 py-3 shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
           <p className="text-sm text-[var(--espresso-50)]">Kein Ergebnis — Werte manuell eingeben.</p>
         </div>
@@ -1266,6 +1436,102 @@ function FoodSearch({
   );
 }
 
+function FoodItem({ food, onSelect }: { food: FoodResult; onSelect: (food: FoodResult) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(food)}
+      className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
+          {food.per100g.fat >= 8 ? (
+            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(240,107,93,0.12)] text-[var(--coral-dark)]">in Öl</span>
+          ) : food.per100g.fat <= 2 && food.per100g.calories < 120 ? (
+            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(52,40,32,0.07)] text-[var(--espresso-50)]">in Wasser</span>
+          ) : null}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+        <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+        <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
+          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 function Empty({ text }: { text: string }) {
   return <p className="soft-card p-4 text-sm leading-6 text-[var(--espresso-50)]">{text}</p>;
+}
+
+function WaterStatus({ water }: { water: string }) {
+  const liters = parseFloat(water) || 0;
+  return (
+    <div className="soft-card p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Wasser</p>
+      <p className="serif mt-2 text-2xl text-[var(--espresso)]">{liters > 0 ? `${liters} l` : "—"}</p>
+      <p className="text-xs text-[var(--espresso-50)]">getrunken</p>
+    </div>
+  );
+}
+
+function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; satiation: string }) {
+  const values = [energy, mood, satiation]
+    .map((v) => parseFloat(v))
+    .filter((v) => !isNaN(v) && v >= 1);
+  if (values.length === 0) {
+    return (
+      <div className="soft-card p-3">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+        <p className="serif mt-2 text-2xl text-[var(--espresso)]">—</p>
+        <p className="text-xs text-[var(--espresso-50)]">Check-In ausfüllen</p>
+      </div>
+    );
+  }
+  const score = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+  const dots = Array.from({ length: 5 }, (_, i) => i + 1);
+  return (
+    <div className="soft-card p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+      <div className="mt-2 flex gap-1">
+        {dots.map((d) => (
+          <span
+            key={d}
+            className={`h-2.5 w-2.5 rounded-full ${d <= Math.round(score) ? "bg-[var(--coral)]" : "bg-[rgba(52,40,32,0.14)]"}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-[var(--espresso-50)]">{score} / 5</p>
+    </div>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={2}
+        className="field h-auto min-h-16 py-3 text-sm"
+        placeholder={placeholder}
+      />
+    </label>
+  );
 }

@@ -21,6 +21,15 @@ export type Profile = {
   goal_type: GoalType | null;
   diet_type: DietType | null;
   calculated_tdee: number | null;
+  target_weight: number | null;
+  training_frequency: number | null;
+  cycle_relevant: boolean | null;
+  sleep_goal_hours: number | null;
+  intolerances: string | null;
+  no_go_foods: string | null;
+  favorite_foods: string | null;
+  alcohol_frequency: string | null;
+  alcohol_amount: string | null;
 };
 
 export type MealEntry = {
@@ -62,6 +71,9 @@ export type DailyNote = {
   water_intake: number | null;
   sleep_quality: number | null;
   energy_level: number | null;
+  satiation: number | null;
+  mood: number | null;
+  cravings: string | null;
   notes: string | null;
 };
 
@@ -86,5 +98,5 @@ export type FoodResult = {
     carbs: number;
     fat: number;
   };
-  source: "off" | "usda";
+  source: "off" | "usda" | "jen";
 };

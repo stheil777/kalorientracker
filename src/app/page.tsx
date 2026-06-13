@@ -225,6 +225,7 @@ export default function Home() {
   const [dailyNote, setDailyNote] = useState(blankNote);
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
+  const [mealSectionOpen, setMealSectionOpen] = useState(false);
   const [goalForm, setGoalForm] = useState(blankGoals);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
@@ -597,6 +598,11 @@ export default function Home() {
     setFoodFocused(false);
   }
 
+  function selectFoodAndOpen(food: FoodResult) {
+    selectFood(food);
+    setMealSectionOpen(true);
+  }
+
   function changeAmount(grams: number) {
     if (!selectedFoodPer100g) return;
     const g = Math.max(10, grams);
@@ -897,7 +903,7 @@ export default function Home() {
               </form>
             </AccordionSection>
 
-            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />}>
+            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />} open={mealSectionOpen} onOpenChange={setMealSectionOpen}>
               <form onSubmit={addMeal} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(mealLabels) as MealType[]).map((type) => (
@@ -954,8 +960,8 @@ export default function Home() {
             </AccordionSection>
 
             <AccordionSection title="Favoriten" icon={<Star />}>
-              {favorites.length ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+              {favorites.length > 0 && (
+                <div className="mb-5 divide-y divide-[var(--espresso-14)]">
                   {[...favorites]
                     .sort((a, b) => {
                       const aMatch = a.meal_type === mealForm.meal_type ? 0 : 1;
@@ -965,36 +971,53 @@ export default function Home() {
                     .map((favorite) => {
                       const isMatch = favorite.meal_type === mealForm.meal_type;
                       return (
-                        <div
-                          key={favorite.id}
-                          className={`min-w-40 rounded-md border p-3 text-sm transition-opacity ${
-                            isMatch
-                              ? "border-[rgba(217,164,65,0.22)] bg-[rgba(255,255,255,0.7)]"
-                              : "border-[var(--espresso-14)] bg-[rgba(255,255,255,0.4)] opacity-50"
-                          }`}
-                        >
-                          <button onClick={() => quickAddFavorite(favorite)} className="pressable w-full text-left">
-                            <p className="font-black text-[var(--espresso)]">{favorite.name}</p>
-                            <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-[var(--espresso-50)]">
-                              {mealLabels[favorite.meal_type]}
+                        <div key={favorite.id} className={`flex items-center gap-3 py-3 transition-opacity ${!isMatch ? "opacity-40" : ""}`}>
+                          <button onClick={() => quickAddFavorite(favorite)} className="pressable min-w-0 flex-1 text-left">
+                            <p className="truncate font-black text-sm text-[var(--espresso)]">{favorite.name}</p>
+                            <p className="text-xs text-[var(--espresso-50)]">
+                              {mealLabels[favorite.meal_type]} · {favorite.calories} kcal
                             </p>
-                            <p className="mt-1 text-[var(--espresso-50)]">{favorite.calories} kcal</p>
                           </button>
                           <button
                             type="button"
                             onClick={() => deleteFavorite(favorite.id)}
-                            className="pressable mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-sm border border-[var(--espresso-14)] text-xs font-black text-[var(--espresso-50)]"
+                            className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            Entfernen
                           </button>
                         </div>
                       );
                     })}
                 </div>
-              ) : (
-                <Empty text="Speichere eine Mahlzeit als Favorit, dann ist sie hier mit einem Tap verfügbar." />
               )}
+              <p className="kicker mb-3">{favorites.length > 0 ? "Jens Lebensmittel" : "Jens Lebensmittel"}</p>
+              <div className="divide-y divide-[var(--espresso-14)]">
+                {[...JEN_FOODS]
+                  .sort((a, b) => a.name.localeCompare("" + b.name, "de"))
+                  .map((food) => (
+                    <div key={food.id} className="flex items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                        <p className="text-xs text-[var(--espresso-50)]">
+                          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="text-right">
+                          <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+                          <p className="text-[10px] text-[var(--espresso-50)]">kcal/100g</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => selectFoodAndOpen(food)}
+                          className="pressable flex h-9 w-9 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </AccordionSection>
 
             <AccordionSection title="Heute gegessen" icon={<Utensils />}>
@@ -1057,18 +1080,29 @@ function AccordionSection({
   icon,
   children,
   defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   title: string;
   icon: ReactNode;
   children: ReactNode;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  function toggle() {
+    if (onOpenChange) onOpenChange(!open);
+    else setInternalOpen((o) => !o);
+  }
+
   return (
     <section className="app-card reveal-in mb-4 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className="pressable flex w-full items-center justify-between px-4 py-4"
       >
         <div className="flex items-center gap-2">

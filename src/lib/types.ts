@@ -102,5 +102,6 @@ export type FoodResult = {
     carbs: number;
     fat: number;
   };
+  stueck_g?: number;
   source: "off" | "usda" | "jen";
 };

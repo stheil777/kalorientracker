@@ -233,6 +233,7 @@ export default function Home() {
   const [showFoodResults, setShowFoodResults] = useState(false);
   const [foodFocused, setFoodFocused] = useState(false);
   const [selectedFoodPer100g, setSelectedFoodPer100g] = useState<FoodResult["per100g"] | null>(null);
+  const [selectedFoodStueckG, setSelectedFoodStueckG] = useState<number | null>(null);
   const [selectedAmount, setSelectedAmount] = useState(100);
 
   const jenMatches = useMemo(() => {
@@ -493,6 +494,7 @@ export default function Home() {
 
     setMealForm((current) => ({ ...blankMeal, meal_type: current.meal_type }));
     setSelectedFoodPer100g(null);
+    setSelectedFoodStueckG(null);
     setSelectedAmount(100);
     await refreshDay();
     await refreshFavorites();
@@ -581,16 +583,20 @@ export default function Home() {
   }
 
   function selectFood(food: FoodResult) {
+    const defaultG = food.stueck_g ?? 100;
+    const f = defaultG / 100;
     setSelectedFoodPer100g(food.per100g);
-    setSelectedAmount(100);
+    setSelectedFoodStueckG(food.stueck_g ?? null);
+    setSelectedAmount(defaultG);
     setMealForm((current) => ({
       ...current,
       food_name: food.name,
-      amount: "100 g",
-      calories: food.per100g.calories.toString(),
-      protein: food.per100g.protein.toString(),
-      carbs: food.per100g.carbs.toString(),
-      fat: food.per100g.fat.toString(),
+      amount: food.stueck_g ? "1 Stück" : "100 g",
+      calories: Math.round(food.per100g.calories * f).toString(),
+      protein: Math.round(food.per100g.protein * f).toString(),
+      carbs: Math.round(food.per100g.carbs * f).toString(),
+      fat: Math.round(food.per100g.fat * f).toString(),
+      saveFavorite: food.source !== "jen",
     }));
     setFoodQuery("");
     setFoodResults([]);
@@ -603,14 +609,14 @@ export default function Home() {
     setMealSectionOpen(true);
   }
 
-  function changeAmount(grams: number) {
+  function changeAmount(grams: number, label?: string) {
     if (!selectedFoodPer100g) return;
     const g = Math.max(10, grams);
     const f = g / 100;
     setSelectedAmount(g);
     setMealForm((current) => ({
       ...current,
-      amount: `${g} g`,
+      amount: label ?? `${g} g`,
       calories: Math.round(selectedFoodPer100g.calories * f).toString(),
       protein: Math.round(selectedFoodPer100g.protein * f).toString(),
       carbs: Math.round(selectedFoodPer100g.carbs * f).toString(),
@@ -938,7 +944,7 @@ export default function Home() {
                   onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
                 />
                 {selectedFoodPer100g ? (
-                  <AmountStepper amount={selectedAmount} onChange={changeAmount} />
+                  <AmountStepper amount={selectedAmount} onChange={changeAmount} stueckG={selectedFoodStueckG ?? undefined} />
                 ) : (
                   <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
                 )}
@@ -969,9 +975,8 @@ export default function Home() {
                       return aMatch - bMatch;
                     })
                     .map((favorite) => {
-                      const isMatch = favorite.meal_type === mealForm.meal_type;
                       return (
-                        <div key={favorite.id} className={`flex items-center gap-3 py-3 transition-opacity ${!isMatch ? "opacity-40" : ""}`}>
+                        <div key={favorite.id} className="flex items-center gap-3 py-3">
                           <button onClick={() => quickAddFavorite(favorite)} className="pressable min-w-0 flex-1 text-left">
                             <p className="truncate font-black text-sm text-[var(--espresso)]">{favorite.name}</p>
                             <p className="text-xs text-[var(--espresso-50)]">
@@ -1565,18 +1570,50 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   );
 }
 
-function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: number) => void }) {
+function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange: (g: number, label?: string) => void; stueckG?: number }) {
+  const [unit, setUnit] = useState<"g" | "stueck">(stueckG ? "stueck" : "g");
+  const fmt = (n: number) => n % 1 === 0 ? `${n}` : n.toFixed(1);
+
+  if (unit === "stueck" && stueckG) {
+    const stueck = Math.max(0.5, Math.round((amount / stueckG) * 2) / 2);
+    return (
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+          <button type="button" onClick={() => setUnit("g")} className="text-xs font-bold text-[var(--coral)]">in Gramm →</button>
+        </div>
+        <div className="soft-card flex items-center justify-between rounded-md p-1">
+          <button
+            type="button"
+            onClick={() => { const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >-</button>
+          <div className="text-center">
+            <span className="serif text-4xl text-[var(--espresso)]">{fmt(stueck)}</span>
+            <span className="ml-1.5 text-base text-[var(--espresso-50)]">Stück</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => { const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          >+</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+        {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-xs font-bold text-[var(--coral)]">in Stück →</button>}
+      </div>
       <div className="soft-card flex items-center justify-between rounded-md p-1">
         <button
           type="button"
           onClick={() => onChange(amount - 10)}
           className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-        >
-          -
-        </button>
+        >-</button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
           <span className="ml-1.5 text-base text-[var(--espresso-50)]">g</span>
@@ -1585,9 +1622,7 @@ function AmountStepper({ amount, onChange }: { amount: number; onChange: (g: num
           type="button"
           onClick={() => onChange(amount + 10)}
           className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-        >
-          +
-        </button>
+        >+</button>
       </div>
     </div>
   );
@@ -1709,11 +1744,6 @@ function FoodItem({ food, onSelect }: { food: FoodResult; onSelect: (food: FoodR
         <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
         <div className="mt-0.5 flex items-center gap-1.5">
           {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
-          {food.per100g.fat >= 8 ? (
-            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(240,107,93,0.12)] text-[var(--coral-dark)]">in Öl</span>
-          ) : food.per100g.fat <= 2 && food.per100g.calories < 120 ? (
-            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black bg-[rgba(52,40,32,0.07)] text-[var(--espresso-50)]">in Wasser</span>
-          ) : null}
         </div>
       </div>
       <div className="shrink-0 text-right">

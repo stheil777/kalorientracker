@@ -1149,7 +1149,7 @@ export default function Home() {
         ) : null}
       </div>
       <footer className="pb-10 pt-2 text-center">
-        <p className="text-xs text-[var(--espresso-30,rgba(52,40,32,0.3))]">„Dein Körper kennt die Antwort. Wir hören gemeinsam hin."</p>
+        <p className="serif text-lg italic leading-snug text-[var(--coral)]">„Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin."</p>
       </footer>
     </main>
   );

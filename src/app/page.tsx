@@ -1102,18 +1102,16 @@ export default function Home() {
           </>
         ) : null}
       </div>
-      <footer className="pt-2 text-center">
+      <footer className="pb-12 pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
-      </footer>
-      <div className="mt-6 bg-white pb-12 pt-1">
+        <hr className="mx-auto mt-6 w-16 border-[var(--espresso-14)]" />
         <button
           onClick={() => supabase?.auth.signOut()}
-          className="flex w-full items-center gap-3 px-6 py-5"
+          className="mt-4 text-xs text-[var(--espresso-28)]"
         >
-          <LogOut className="h-5 w-5 text-[var(--espresso-28)]" />
-          <span className="text-sm font-bold text-[var(--espresso-50)]">Ausloggen</span>
+          Ausloggen
         </button>
-      </div>
+      </footer>
     </main>
   );
 }

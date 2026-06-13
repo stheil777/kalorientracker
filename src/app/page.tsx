@@ -779,21 +779,19 @@ export default function Home() {
   return (
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pb-28 pt-12">
-        <header className="reveal-in mb-6 flex items-start justify-between">
-          <div>
-            <p className="kicker mb-2">{formatGermanDate(date)}</p>
-            <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
-              Heute <span className="italic text-[var(--coral)]">tracken.</span>
-            </h1>
-          </div>
-          <button
-            onClick={() => supabase?.auth.signOut()}
-            className="pressable flex h-11 w-11 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)]"
-            aria-label="Ausloggen"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+        <header className="reveal-in mb-6">
+          <p className="kicker mb-2">{formatGermanDate(date)}</p>
+          <h1 className="serif text-5xl leading-none text-[var(--espresso)]">
+            Heute <span className="italic text-[var(--coral)]">tracken.</span>
+          </h1>
         </header>
+        <button
+          onClick={() => supabase?.auth.signOut()}
+          className="pressable fixed right-5 top-5 z-40 flex h-11 w-11 items-center justify-center rounded-md border border-[var(--espresso-14)] bg-white/70 text-[var(--espresso-50)] backdrop-blur-sm"
+          aria-label="Ausloggen"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
 
         {saveError && (
           <div className="mb-4 flex items-center justify-between rounded-md bg-[rgba(230,80,60,0.10)] px-4 py-3 text-sm font-bold text-[var(--coral-dark)]">

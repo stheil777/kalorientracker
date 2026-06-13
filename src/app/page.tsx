@@ -833,9 +833,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={toggleGoals}
-                className="pressable mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--espresso-14)] bg-white/60 text-sm font-black text-[var(--espresso-70)]"
+                className="coral-button pressable mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md text-sm font-black"
               >
-                <Settings2 className="h-4 w-4 text-[var(--coral)]" />
+                <Settings2 className="h-4 w-4" />
                 Profil & Ziel {editingGoals ? "ausblenden" : "anpassen"}
               </button>
             </section>

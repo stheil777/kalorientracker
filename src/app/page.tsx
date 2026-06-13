@@ -1148,6 +1148,9 @@ export default function Home() {
           </>
         ) : null}
       </div>
+      <footer className="pb-10 pt-2 text-center">
+        <p className="text-xs text-[var(--espresso-30,rgba(52,40,32,0.3))]">Eat well. Feel good. Every day.</p>
+      </footer>
     </main>
   );
 }

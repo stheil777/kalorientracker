@@ -778,7 +778,7 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <div className="mx-auto max-w-md px-4 pb-28 pt-6">
+      <div className="mx-auto max-w-md px-4 pb-28 pt-12">
         <header className="reveal-in mb-6 flex items-start justify-between">
           <div>
             <p className="kicker mb-2">{formatGermanDate(date)}</p>

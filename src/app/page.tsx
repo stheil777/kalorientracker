@@ -230,6 +230,7 @@ export default function Home() {
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
   const [mealSectionOpen, setMealSectionOpen] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [goalForm, setGoalForm] = useState(blankGoals);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
@@ -276,6 +277,12 @@ export default function Home() {
     [meals],
   );
 
+  const caloriesLeft = Math.max(
+    (activeProfile?.calorie_goal ?? 0) - totals.calories + (Number(dailyNote.training_kcal) || 0),
+    0,
+  );
+  const animatedCaloriesLeft = useAnimatedNumber(caloriesLeft);
+
   useEffect(() => {
     if (!supabase) {
       return;
@@ -302,7 +309,7 @@ export default function Home() {
 
     async function loadProfiles() {
       const profileName: "Stephan" | "Jen" =
-        user!.email === "stheil.de@gmail.com" ? "Stephan" : "Jen";
+        user!.email === "mail@stheil.de" ? "Stephan" : "Jen";
 
       const { data, error } = await supabase!
         .from("profiles")
@@ -705,6 +712,7 @@ export default function Home() {
     if (noteError) { setSaveError("Check-In konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     setSaving(false);
+    setCheckInOpen(false);
   }
 
   if (!hasSupabaseConfig) {
@@ -876,7 +884,7 @@ export default function Home() {
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
                   <p className="serif text-[4.4rem] leading-none text-[var(--coral)]">
-                    {Math.max(activeProfile.calorie_goal - totals.calories + (Number(dailyNote.training_kcal) || 0), 0)}
+                    {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (
                     <p className="mt-1 text-xs font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
@@ -921,18 +929,19 @@ export default function Home() {
               </section>
             ) : null}
 
-            <AccordionSection title="Check-In" icon={<Heart />}>
+            <AccordionSection title="Check-In" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
               <form onSubmit={saveDailyNote} className="space-y-3">
                 <ToggleRow
                   label="Training heute?"
                   checked={dailyNote.training}
-                  onChange={(checked) => setDailyNote({
-                    ...dailyNote,
-                    training: checked,
-                    training_activity: checked ? (dailyNote.training_activity || "yoga") : "",
-                    training_duration_min: checked ? (dailyNote.training_duration_min || "30") : "",
-                    training_kcal: checked ? dailyNote.training_kcal : "",
-                  })}
+                  onChange={(checked) => {
+                    const activity = checked ? (dailyNote.training_activity || "yoga") : "";
+                    const duration = checked ? (dailyNote.training_duration_min || "30") : "";
+                    const weight = parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65;
+                    const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 3.0;
+                    const kcal = checked ? String(Math.round(met * weight * (parseInt(duration) / 60))) : "";
+                    setDailyNote({ ...dailyNote, training: checked, training_activity: activity, training_duration_min: duration, training_kcal: kcal });
+                  }}
                 />
                 {dailyNote.training && (
                   <TrainingPicker
@@ -1917,4 +1926,35 @@ function TextArea({
       />
     </label>
   );
+}
+
+function useAnimatedNumber(target: number) {
+  const [displayed, setDisplayed] = useState(target);
+  const prevRef = useRef(target);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (prevRef.current === target) return;
+    const start = prevRef.current;
+    const diff = target - start;
+    const duration = 500;
+    const startTime = performance.now();
+
+    cancelAnimationFrame(rafRef.current);
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(Math.round(start + diff * eased));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        prevRef.current = target;
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target]);
+
+  return displayed;
 }

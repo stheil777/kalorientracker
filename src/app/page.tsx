@@ -74,6 +74,7 @@ const blankMeal: MealFormState = {
 const blankNote = {
   weight: "",
   training: false,
+  training_notes: "",
   water_intake: "",
   sleep_quality: "3",
   energy_level: "3",
@@ -385,6 +386,7 @@ export default function Home() {
         ? {
             weight: note.weight?.toString() ?? "",
             training: note.training,
+            training_notes: note.training_notes ?? "",
             water_intake: note.water_intake?.toString() ?? "",
             sleep_quality: note.sleep_quality?.toString() ?? "3",
             energy_level: note.energy_level?.toString() ?? "3",
@@ -622,6 +624,7 @@ export default function Home() {
         date,
         weight: dailyNote.weight ? Number(dailyNote.weight) : null,
         training: dailyNote.training,
+        training_notes: dailyNote.training_notes.trim() || null,
         water_intake: dailyNote.water_intake ? Number(dailyNote.water_intake) : null,
         sleep_quality: dailyNote.sleep_quality ? Number(dailyNote.sleep_quality) : null,
         energy_level: dailyNote.energy_level ? Number(dailyNote.energy_level) : null,
@@ -800,13 +803,22 @@ export default function Home() {
               </section>
             ) : null}
 
-            <AccordionSection title="Check-In" icon={<Heart />} defaultOpen>
+            <AccordionSection title="Check-In" icon={<Heart />}>
               <form onSubmit={saveDailyNote} className="space-y-3">
                 <ToggleRow
                   label="Training heute?"
                   checked={dailyNote.training}
-                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked })}
+                  onChange={(checked) => setDailyNote({ ...dailyNote, training: checked, training_notes: checked ? dailyNote.training_notes : "" })}
                 />
+                {dailyNote.training && (
+                  <input
+                    value={dailyNote.training_notes}
+                    onChange={(e) => setDailyNote({ ...dailyNote, training_notes: e.target.value })}
+                    className="field"
+                    placeholder="Was hast du trainiert? z.B. 30 min Yoga"
+                    autoFocus
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <WaterStepper
                     value={dailyNote.water_intake}
@@ -860,7 +872,7 @@ export default function Home() {
               </form>
             </AccordionSection>
 
-            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />} defaultOpen>
+            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />}>
               <form onSubmit={addMeal} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(mealLabels) as MealType[]).map((type) => (
@@ -959,7 +971,7 @@ export default function Home() {
               )}
             </AccordionSection>
 
-            <AccordionSection title="Heute gegessen" icon={<Utensils />} defaultOpen>
+            <AccordionSection title="Heute gegessen" icon={<Utensils />}>
               {meals.length ? (
                 <div className="space-y-2">
                   {meals.map((meal) => (

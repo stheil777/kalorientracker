@@ -3,6 +3,7 @@
 import {
   cloneElement,
   useEffect,
+  useRef,
   useMemo,
   useState,
   type FormEvent,
@@ -21,10 +22,12 @@ import {
   LogOut,
   Moon,
   Plus,
+  Search,
   Settings2,
   Star,
   Trash2,
   Utensils,
+  X,
   Zap,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
@@ -34,6 +37,7 @@ import type {
   DailyNote,
   DietType,
   FavoriteMeal,
+  FoodResult,
   GoalType,
   MealEntry,
   MealFormState,
@@ -188,6 +192,10 @@ export default function Home() {
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalForm, setGoalForm] = useState(blankGoals);
+  const [foodQuery, setFoodQuery] = useState("");
+  const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
+  const [foodSearching, setFoodSearching] = useState(false);
+  const [showFoodResults, setShowFoodResults] = useState(false);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
@@ -296,6 +304,26 @@ export default function Home() {
     refreshFavorites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeProfileId, date]);
+
+  useEffect(() => {
+    if (foodQuery.length < 2) {
+      setFoodResults([]);
+      setShowFoodResults(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setFoodSearching(true);
+      try {
+        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`);
+        const data: FoodResult[] = await res.json();
+        setFoodResults(data);
+        setShowFoodResults(true);
+      } finally {
+        setFoodSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [foodQuery]);
 
   async function refreshDay() {
     if (!supabase || !activeProfile) return;
@@ -486,6 +514,21 @@ export default function Home() {
     }
 
     setSaving(false);
+  }
+
+  function selectFood(food: FoodResult) {
+    setMealForm((current) => ({
+      ...current,
+      food_name: food.name,
+      amount: "100 g",
+      calories: food.per100g.calories.toString(),
+      protein: food.per100g.protein.toString(),
+      carbs: food.per100g.carbs.toString(),
+      fat: food.per100g.fat.toString(),
+    }));
+    setFoodQuery("");
+    setFoodResults([]);
+    setShowFoodResults(false);
   }
 
   function selectProfile(profile: Profile) {
@@ -702,6 +745,15 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <FoodSearch
+                  query={foodQuery}
+                  results={foodResults}
+                  searching={foodSearching}
+                  showResults={showFoodResults}
+                  onQueryChange={(value) => setFoodQuery(value)}
+                  onSelect={selectFood}
+                  onDismiss={() => setShowFoodResults(false)}
+                />
                 <Input label="Lebensmittel" value={mealForm.food_name} onChange={(value) => setMealForm({ ...mealForm, food_name: value })} required />
                 <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
                 <div className="grid grid-cols-2 gap-3">
@@ -1065,6 +1117,96 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
       <p className="serif mt-2 text-2xl text-[var(--espresso)]">{Math.max(goal - value, 0)} g</p>
       <p className="text-xs text-[var(--espresso-50)]">von {goal} g</p>
+    </div>
+  );
+}
+
+function FoodSearch({
+  query,
+  results,
+  searching,
+  showResults,
+  onQueryChange,
+  onSelect,
+  onDismiss,
+}: {
+  query: string;
+  results: FoodResult[];
+  searching: boolean;
+  showResults: boolean;
+  onQueryChange: (value: string) => void;
+  onSelect: (food: FoodResult) => void;
+  onDismiss: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        onDismiss();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onDismiss]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Datenbank suchen</span>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--espresso-50)]" />
+          <input
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="z.B. Hähnchenbrust, Banane, Skyr..."
+            className="field pl-10 pr-9"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => onQueryChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--espresso-50)]"
+            >
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            </button>
+          ) : null}
+        </div>
+      </label>
+
+      {showResults && results.length > 0 ? (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[var(--espresso-14)] bg-white shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
+          {results.map((food) => (
+            <button
+              key={food.id}
+              type="button"
+              onClick={() => onSelect(food)}
+              className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                {food.brand ? (
+                  <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p>
+                ) : null}
+                <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
+                  {food.source === "off" ? "Open Food Facts" : "USDA"} · pro 100 g
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+                <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+                <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
+                  P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : showResults && !searching ? (
+        <div className="absolute z-10 mt-1 w-full rounded-md border border-[var(--espresso-14)] bg-white px-4 py-3 shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
+          <p className="text-sm text-[var(--espresso-50)]">Kein Ergebnis — Werte manuell eingeben.</p>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -75,3 +75,16 @@ export type MealFormState = {
   fat: string;
   saveFavorite: boolean;
 };
+
+export type FoodResult = {
+  id: string;
+  name: string;
+  brand?: string;
+  per100g: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  source: "off" | "usda";
+};

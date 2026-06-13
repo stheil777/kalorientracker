@@ -713,6 +713,7 @@ export default function Home() {
     await refreshDay();
     setSaving(false);
     setCheckInOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (!hasSupabaseConfig) {

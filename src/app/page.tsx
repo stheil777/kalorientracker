@@ -63,9 +63,6 @@ const TRAINING_ACTIVITIES = [
   { value: "hiit", label: "HIIT", met: 8.0 },
 ];
 
-type BatchPickItem =
-  | { kind: "jen"; food: FoodResult; grams: number; stueckG?: number; label: string }
-  | { kind: "fav"; fav: FavoriteMeal };
 
 const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
@@ -234,22 +231,18 @@ export default function Home() {
   const [dailyNote, setDailyNote] = useState(blankNote);
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
-  const [mealSectionOpen, setMealSectionOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
-  const [batchOpen, setBatchOpen] = useState(false);
-  const [batchMealType, setBatchMealType] = useState<MealType>("breakfast");
-  const [batchStep, setBatchStep] = useState<"select" | "amounts">("select");
-  const [batchPicks, setBatchPicks] = useState<Record<string, BatchPickItem>>({});
-  const [batchQuery, setBatchQuery] = useState("");
+  const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
+  const [inlineKey, setInlineKey] = useState<string | null>(null);
+  const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
+  const [inlineGrams, setInlineGrams] = useState(100);
+  const [inlineLabel, setInlineLabel] = useState("100 g");
   const [goalForm, setGoalForm] = useState(blankGoals);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState<FoodResult[]>([]);
   const [foodSearching, setFoodSearching] = useState(false);
   const [showFoodResults, setShowFoodResults] = useState(false);
   const [foodFocused, setFoodFocused] = useState(false);
-  const [selectedFoodPer100g, setSelectedFoodPer100g] = useState<FoodResult["per100g"] | null>(null);
-  const [selectedFoodStueckG, setSelectedFoodStueckG] = useState<number | null>(null);
-  const [selectedAmount, setSelectedAmount] = useState(100);
 
   const jenMatches = useMemo(() => {
     if (!foodFocused) return [];
@@ -514,71 +507,6 @@ export default function Home() {
     setSaving(false);
   }
 
-  async function addMeal(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!supabase || !user || !activeProfile) return;
-    setSaving(true);
-
-    const payload = {
-      user_id: user.id,
-      profile_id: activeProfile.id,
-      date,
-      meal_type: mealForm.meal_type,
-      food_name: mealForm.food_name.trim(),
-      amount: mealForm.amount.trim(),
-      calories: Number(mealForm.calories) || 0,
-      protein: Number(mealForm.protein) || 0,
-      carbs: Number(mealForm.carbs) || 0,
-      fat: Number(mealForm.fat) || 0,
-    };
-
-    const { error } = await supabase.from("meal_entries").insert(payload);
-
-    if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
-
-    if (mealForm.saveFavorite) {
-      await supabase.from("favorite_meals").insert({
-        user_id: user.id,
-        profile_id: activeProfile.id,
-        name: payload.food_name,
-        amount: payload.amount,
-        meal_type: payload.meal_type,
-        calories: payload.calories,
-        protein: payload.protein,
-        carbs: payload.carbs,
-        fat: payload.fat,
-      });
-    }
-
-    setMealForm((current) => ({ ...blankMeal, meal_type: current.meal_type }));
-    setSelectedFoodPer100g(null);
-    setSelectedFoodStueckG(null);
-    setSelectedAmount(100);
-    await refreshDay();
-    await refreshFavorites();
-    setSaving(false);
-  }
-
-  async function quickAddFavorite(favorite: FavoriteMeal) {
-    if (!supabase || !user || !activeProfile) return;
-    setSaving(true);
-    const { error } = await supabase.from("meal_entries").insert({
-      user_id: user.id,
-      profile_id: activeProfile.id,
-      date,
-      meal_type: favorite.meal_type,
-      food_name: favorite.name,
-      amount: favorite.amount,
-      calories: favorite.calories,
-      protein: favorite.protein,
-      carbs: favorite.carbs,
-      fat: favorite.fat,
-    });
-    if (error) { setSaveError("Favorit konnte nicht hinzugefügt werden."); setSaving(false); return; }
-    await refreshDay();
-    setSaving(false);
-  }
-
   async function deleteMeal(mealId: string) {
     if (!supabase) return;
     setSaving(true);
@@ -643,48 +571,6 @@ export default function Home() {
     setSaving(false);
   }
 
-  function selectFood(food: FoodResult) {
-    const defaultG = food.stueck_g ?? 100;
-    const f = defaultG / 100;
-    setSelectedFoodPer100g(food.per100g);
-    setSelectedFoodStueckG(food.stueck_g ?? null);
-    setSelectedAmount(defaultG);
-    setMealForm((current) => ({
-      ...current,
-      food_name: food.name,
-      amount: food.stueck_g ? "1 Stück" : "100 g",
-      calories: Math.round(food.per100g.calories * f).toString(),
-      protein: Math.round(food.per100g.protein * f).toString(),
-      carbs: Math.round(food.per100g.carbs * f).toString(),
-      fat: Math.round(food.per100g.fat * f).toString(),
-      saveFavorite: food.source !== "jen",
-    }));
-    setFoodQuery("");
-    setFoodResults([]);
-    setShowFoodResults(false);
-    setFoodFocused(false);
-  }
-
-  function selectFoodAndOpen(food: FoodResult) {
-    selectFood(food);
-    setMealSectionOpen(true);
-  }
-
-  function changeAmount(grams: number, label?: string) {
-    if (!selectedFoodPer100g) return;
-    const g = Math.max(10, grams);
-    const f = g / 100;
-    setSelectedAmount(g);
-    setMealForm((current) => ({
-      ...current,
-      amount: label ?? `${g} g`,
-      calories: Math.round(selectedFoodPer100g.calories * f).toString(),
-      protein: Math.round(selectedFoodPer100g.protein * f).toString(),
-      carbs: Math.round(selectedFoodPer100g.carbs * f).toString(),
-      fat: Math.round(selectedFoodPer100g.fat * f).toString(),
-    }));
-  }
-
   function selectProfile(profile: Profile) {
     setActiveProfileId(profile.id);
     setGoalForm(goalsFromProfile(profile));
@@ -731,24 +617,46 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function batchSaveAll() {
-    if (!supabase || !user || !activeProfile) return;
+  function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }) {
+    if (inlineKey === key) { setInlineKey(null); setInlineFood(null); return; }
+    setInlineKey(key);
+    setInlineFood(food);
+    setInlineGrams(food.stueckG ?? 100);
+    setInlineLabel(food.stueckG ? "1 Stück" : "100 g");
+  }
+
+  async function inlineAddMeal() {
+    if (!supabase || !user || !activeProfile || !inlineFood || !activeMealType) return;
     setSaving(true);
-    const entries = Object.values(batchPicks).map((pick) => {
-      if (pick.kind === "fav") {
-        return { user_id: user!.id, profile_id: activeProfile!.id, date, meal_type: batchMealType, food_name: pick.fav.name, amount: pick.fav.amount, calories: pick.fav.calories, protein: Number(pick.fav.protein), carbs: Number(pick.fav.carbs), fat: Number(pick.fav.fat) };
-      }
-      const f = pick.grams / 100;
-      return { user_id: user!.id, profile_id: activeProfile!.id, date, meal_type: batchMealType, food_name: pick.food.name, amount: pick.label, calories: Math.round(pick.food.per100g.calories * f), protein: Math.round(pick.food.per100g.protein * f * 10) / 10, carbs: Math.round(pick.food.per100g.carbs * f * 10) / 10, fat: Math.round(pick.food.per100g.fat * f * 10) / 10 };
+    const f = inlineGrams / 100;
+    const { error } = await supabase.from("meal_entries").insert({
+      user_id: user.id, profile_id: activeProfile.id, date,
+      meal_type: activeMealType, food_name: inlineFood.name, amount: inlineLabel,
+      calories: Math.round(inlineFood.per100g.calories * f),
+      protein: Math.round(inlineFood.per100g.protein * f * 10) / 10,
+      carbs: Math.round(inlineFood.per100g.carbs * f * 10) / 10,
+      fat: Math.round(inlineFood.per100g.fat * f * 10) / 10,
     });
-    const { error } = await supabase.from("meal_entries").insert(entries);
-    if (error) { setSaveError("Mahlzeiten konnten nicht gespeichert werden."); setSaving(false); return; }
+    if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     setSaving(false);
-    setBatchOpen(false);
-    setBatchPicks({});
-    setBatchStep("select");
-    setBatchQuery("");
+    setInlineKey(null);
+    setInlineFood(null);
+    setFoodQuery(""); setFoodResults([]); setShowFoodResults(false); setFoodFocused(false);
+  }
+
+  async function quickAddFavForType(fav: FavoriteMeal, mealType: MealType) {
+    if (!supabase || !user || !activeProfile) return;
+    setSaving(true);
+    const { error } = await supabase.from("meal_entries").insert({
+      user_id: user.id, profile_id: activeProfile.id, date, meal_type: mealType,
+      food_name: fav.name, amount: fav.amount, calories: fav.calories,
+      protein: Number(fav.protein), carbs: Number(fav.carbs), fat: Number(fav.fat),
+    });
+    if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
+    await refreshDay();
+    setSaving(false);
+    setInlineKey(null);
   }
 
   if (!hasSupabaseConfig) {
@@ -974,9 +882,9 @@ export default function Home() {
                   <button
                     key={type}
                     type="button"
-                    onClick={() => { setBatchMealType(type); setBatchStep("select"); setBatchPicks({}); setBatchQuery(""); setBatchOpen(true); }}
+                    onClick={() => { setActiveMealType(activeMealType === type ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
                     className="pressable app-card relative flex flex-col items-start rounded-xl p-4 text-left"
-                    style={hasEntries ? { outline: "2px solid var(--coral)", outlineOffset: "-2px" } : undefined}
+                    style={activeMealType === type ? { outline: "2px solid var(--espresso)", outlineOffset: "-2px" } : hasEntries ? { outline: "2px solid var(--coral)", outlineOffset: "-2px" } : undefined}
                   >
                     {hasEntries && (
                       <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--coral)]">
@@ -1070,145 +978,141 @@ export default function Home() {
               </form>
             </AccordionSection>
 
-            <AccordionSection title="Mahlzeit eintragen" icon={<Plus />} open={mealSectionOpen} onOpenChange={setMealSectionOpen}>
-              <form onSubmit={addMeal} className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(mealLabels) as MealType[]).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setMealForm((current) => ({ ...current, meal_type: type }))}
-                      className={`pressable h-12 rounded-md text-sm font-black ${
-                        mealForm.meal_type === type
-                          ? "bg-[var(--espresso)] text-white"
-                          : "soft-card text-[var(--espresso-50)]"
-                      }`}
-                    >
-                      {mealLabels[type]}
-                    </button>
-                  ))}
-                </div>
-                <FoodSearch
-                  query={mealForm.food_name}
-                  jenFoods={jenMatches}
-                  apiResults={foodResults}
-                  searching={foodSearching}
-                  showResults={showDropdown}
-                  onQueryChange={(value) => {
-                    setMealForm({ ...mealForm, food_name: value });
-                    setFoodQuery(value);
-                    setSelectedFoodPer100g(null);
-                    if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
-                  }}
-                  onSelect={selectFood}
-                  onFocus={() => setFoodFocused(true)}
-                  onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
-                />
-                {selectedFoodPer100g ? (
-                  <AmountStepper amount={selectedAmount} onChange={changeAmount} stueckG={selectedFoodStueckG ?? undefined} />
-                ) : (
-                  <Input label="Menge" value={mealForm.amount} onChange={(value) => setMealForm({ ...mealForm, amount: value })} placeholder="z.B. 250 g" />
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Kalorien" type="number" value={mealForm.calories} onChange={(value) => setMealForm({ ...mealForm, calories: value })} required />
-                  <Input label="Protein" type="number" value={mealForm.protein} onChange={(value) => setMealForm({ ...mealForm, protein: value })} />
-                  <Input label="Carbs" type="number" value={mealForm.carbs} onChange={(value) => setMealForm({ ...mealForm, carbs: value })} />
-                  <Input label="Fett" type="number" value={mealForm.fat} onChange={(value) => setMealForm({ ...mealForm, fat: value })} />
-                </div>
-                <ToggleRow
-                  label="Als Favorit speichern"
-                  checked={mealForm.saveFavorite}
-                  onChange={(checked) => setMealForm({ ...mealForm, saveFavorite: checked })}
-                />
-                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
-                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Mahlzeit speichern"}
-                </button>
-              </form>
-            </AccordionSection>
+            {activeMealType && (
+              <div className="mb-5 space-y-2">
+                <AccordionSection title="Meine Favoriten" icon={<Star />}>
+                  {favorites.length === 0 ? (
+                    <p className="text-sm text-[var(--espresso-50)]">Noch keine Favoriten gespeichert.</p>
+                  ) : (
+                    <div className="divide-y divide-[var(--espresso-14)]">
+                      {favorites.map((fav) => {
+                        const key = `fav:${fav.id}`;
+                        const isOpen = inlineKey === key;
+                        return (
+                          <div key={fav.id}>
+                            <div className="flex items-center gap-3 py-3">
+                              <button type="button" onClick={() => { if (isOpen) { setInlineKey(null); } else { setInlineKey(key); setInlineFood(null); } }} className="pressable min-w-0 flex-1 text-left">
+                                <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
+                                <p className="text-xs text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
+                              </button>
+                              <button type="button" onClick={() => deleteFavorite(fav.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {isOpen && (
+                              <div className="pb-3">
+                                <p className="mb-2 text-xs text-[var(--espresso-50)]">Menge: {fav.amount} · {fav.calories} kcal</p>
+                                <button type="button" onClick={() => quickAddFavForType(fav, activeMealType)} className="coral-button flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </AccordionSection>
 
-            <AccordionSection title="Favoriten" icon={<Star />}>
-              {favorites.length > 0 && (
-                <div className="mb-5 divide-y divide-[var(--espresso-14)]">
-                  {[...favorites]
-                    .sort((a, b) => {
-                      const aMatch = a.meal_type === mealForm.meal_type ? 0 : 1;
-                      const bMatch = b.meal_type === mealForm.meal_type ? 0 : 1;
-                      return aMatch - bMatch;
-                    })
-                    .map((favorite) => {
+                <AccordionSection title="Jens Lebensmittel" icon={<Utensils />}>
+                  <div className="divide-y divide-[var(--espresso-14)]">
+                    {[...JEN_FOODS].sort((a, b) => a.name.localeCompare(b.name, "de")).map((food) => {
+                      const key = `jen:${food.name}`;
+                      const isOpen = inlineKey === key;
                       return (
-                        <div key={favorite.id} className="flex items-center gap-3 py-3">
-                          <button onClick={() => quickAddFavorite(favorite)} className="pressable min-w-0 flex-1 text-left">
-                            <p className="truncate font-black text-sm text-[var(--espresso)]">{favorite.name}</p>
-                            <p className="text-xs text-[var(--espresso-50)]">
-                              {mealLabels[favorite.meal_type]} · {favorite.calories} kcal
-                            </p>
+                        <div key={food.name}>
+                          <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex w-full items-center justify-between gap-3 py-3 text-left">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                              <p className="text-xs text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteFavorite(favorite.id)}
-                            className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {isOpen && (
+                            <div className="pb-4">
+                              <AmountStepper amount={inlineGrams} stueckG={food.stueck_g} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                              <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
-                </div>
-              )}
-              <p className="kicker mb-3">{favorites.length > 0 ? "Jens Lebensmittel" : "Jens Lebensmittel"}</p>
-              <div className="divide-y divide-[var(--espresso-14)]">
-                {[...JEN_FOODS]
-                  .sort((a, b) => a.name.localeCompare("" + b.name, "de"))
-                  .map((food) => (
-                    <div key={food.id} className="flex items-center gap-3 py-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                        <p className="text-xs text-[var(--espresso-50)]">
-                          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <div className="text-right">
-                          <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
-                          <p className="text-[10px] text-[var(--espresso-50)]">kcal/100g</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => selectFoodAndOpen(food)}
-                          className="pressable flex h-9 w-9 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </AccordionSection>
+                  </div>
+                </AccordionSection>
 
-            <AccordionSection title="Heute gegessen" icon={<Utensils />}>
+                <div className="app-card p-4">
+                  <p className="kicker mb-3">Suche</p>
+                  <FoodSearch
+                    query={foodQuery}
+                    jenFoods={jenMatches}
+                    apiResults={foodResults}
+                    searching={foodSearching}
+                    showResults={showDropdown}
+                    onQueryChange={(value) => {
+                      setFoodQuery(value);
+                      setInlineKey(null);
+                      if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
+                    }}
+                    onSelect={(food) => openInlineFood(`search:${food.name}`, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })}
+                    onFocus={() => setFoodFocused(true)}
+                    onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
+                  />
+                  {inlineKey?.startsWith("search:") && inlineFood && (
+                    <div className="mt-3">
+                      <p className="mb-3 text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
+                      <AmountStepper amount={inlineGrams} stueckG={inlineFood.stueckG} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                      <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {(mealsByType[activeMealType] ?? []).length > 0 && (
+                  <div className="app-card p-4">
+                    <p className="kicker mb-3">Heute {mealLabels[activeMealType]}</p>
+                    <div className="divide-y divide-[var(--espresso-14)]">
+                      {(mealsByType[activeMealType] ?? []).map((meal) => (
+                        <div key={meal.id} className="flex items-center justify-between gap-3 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
+                            <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
+                            <button type="button" onClick={() => quickAddFavForType({ id: meal.id, user_id: meal.user_id, profile_id: meal.profile_id ?? "", name: meal.food_name, amount: meal.amount, meal_type: meal.meal_type, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, created_at: "" }, activeMealType)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.1)] text-[var(--coral)]">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                            <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <AccordionSection title="Alles heute" icon={<Utensils />}>
               {meals.length ? (
                 <div className="space-y-2">
                   {meals.map((meal) => (
                     <div key={meal.id} className="soft-card flex items-center justify-between gap-3 p-3">
                       <div>
                         <p className="font-black text-[var(--espresso)]">{meal.food_name}</p>
-                        <p className="text-sm text-[var(--espresso-50)]">
-                          {mealLabels[meal.meal_type]} · {meal.amount || "ohne Menge"}
-                        </p>
+                        <p className="text-sm text-[var(--espresso-50)]">{mealLabels[meal.meal_type]} · {meal.amount || "—"}</p>
                       </div>
                       <div className="flex items-center gap-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => deleteMeal(meal.id)}
-                          className="pressable flex h-10 w-10 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]"
-                          aria-label={`${meal.food_name} löschen`}
-                        >
+                        <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-10 w-10 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
                           <Trash2 className="h-4 w-4" />
                         </button>
                         <div>
-                        <p className="serif text-2xl text-[var(--coral)]">{meal.calories}</p>
-                        <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+                          <p className="serif text-2xl text-[var(--coral)]">{meal.calories}</p>
+                          <p className="text-xs text-[var(--espresso-50)]">kcal</p>
                         </div>
                       </div>
                     </div>
@@ -1224,38 +1128,6 @@ export default function Home() {
       <footer className="pb-10 pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">„Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin."</p>
       </footer>
-
-      {batchOpen && (
-        <BatchSheet
-          mealType={batchMealType}
-          step={batchStep}
-          picks={batchPicks}
-          query={batchQuery}
-          favorites={favorites}
-          existingMeals={mealsByType[batchMealType] ?? []}
-          saving={saving}
-          onClose={() => setBatchOpen(false)}
-          onTogglePick={(key, item) =>
-            setBatchPicks((current) => {
-              const next = { ...current };
-              if (key in next) { delete next[key]; } else { next[key] = item; }
-              return next;
-            })
-          }
-          onUpdatePickAmount={(key, grams, label) =>
-            setBatchPicks((current) => {
-              const pick = current[key];
-              if (!pick || pick.kind !== "jen") return current;
-              return { ...current, [key]: { ...pick, grams, label } };
-            })
-          }
-          onNext={() => setBatchStep("amounts")}
-          onBack={() => setBatchStep("select")}
-          onSave={batchSaveAll}
-          onQueryChange={setBatchQuery}
-          onDeleteMeal={deleteMeal}
-        />
-      )}
     </main>
   );
 }
@@ -2053,165 +1925,4 @@ function useAnimatedNumber(target: number) {
   }, [target]);
 
   return displayed;
-}
-
-function BatchSheet({
-  mealType, step, picks, query, favorites, existingMeals, saving,
-  onClose, onTogglePick, onUpdatePickAmount, onNext, onBack, onSave, onQueryChange, onDeleteMeal,
-}: {
-  mealType: MealType; step: "select" | "amounts"; picks: Record<string, BatchPickItem>;
-  query: string; favorites: FavoriteMeal[]; existingMeals: MealEntry[]; saving: boolean;
-  onClose: () => void; onTogglePick: (key: string, item: BatchPickItem) => void;
-  onUpdatePickAmount: (key: string, grams: number, label: string) => void;
-  onNext: () => void; onBack: () => void; onSave: () => void;
-  onQueryChange: (q: string) => void; onDeleteMeal: (id: string) => void;
-}) {
-  const label = mealLabels[mealType];
-  const pickCount = Object.keys(picks).length;
-  const q = query.toLowerCase();
-  const filteredFavs = favorites.filter((f) => !q || f.name.toLowerCase().includes(q));
-  const filteredJen = [...JEN_FOODS].filter((f) => !q || f.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "de"));
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 flex max-h-[90vh] flex-col overflow-hidden rounded-t-2xl bg-[#fafafa] shadow-[0_-20px_60px_rgba(52,40,32,0.22)]">
-
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--espresso-14)] px-5 py-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
-              {step === "select" ? "Schritt 1 — Auswählen" : "Schritt 2 — Menge"}
-            </p>
-            <h2 className="serif text-2xl leading-tight text-[var(--espresso)]">{label}</h2>
-          </div>
-          <button type="button" onClick={onClose} className="pressable flex h-10 w-10 items-center justify-center rounded-md bg-[rgba(52,40,32,0.06)]">
-            <X className="h-5 w-5 text-[var(--espresso-50)]" />
-          </button>
-        </div>
-
-        {step === "select" ? (
-          <>
-            <div className="shrink-0 px-5 py-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--espresso-30,rgba(52,40,32,0.3))]" />
-                <input className="field pl-9" placeholder="Suchen..." value={query} onChange={(e) => onQueryChange(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-              {existingMeals.length > 0 && (
-                <div className="mb-5">
-                  <p className="kicker mb-2">Heute schon eingetragen</p>
-                  <div className="divide-y divide-[var(--espresso-14)]">
-                    {existingMeals.map((m) => (
-                      <div key={m.id} className="flex items-center justify-between py-2.5">
-                        <div>
-                          <p className="text-sm font-black text-[var(--espresso)]">{m.food_name}</p>
-                          <p className="text-xs text-[var(--espresso-50)]">{m.amount} · {m.calories} kcal</p>
-                        </div>
-                        <button type="button" onClick={() => onDeleteMeal(m.id)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {filteredFavs.length > 0 && (
-                <div className="mb-5">
-                  <p className="kicker mb-2">Meine Favoriten</p>
-                  <div className="divide-y divide-[var(--espresso-14)]">
-                    {filteredFavs.map((fav) => {
-                      const key = `fav:${fav.id}`;
-                      const selected = key in picks;
-                      return (
-                        <button key={fav.id} type="button" onClick={() => onTogglePick(key, { kind: "fav", fav })} className="pressable flex w-full items-center gap-3 py-3 text-left">
-                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
-                            {selected && <Check className="h-3.5 w-3.5 text-white" />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
-                            <p className="text-xs text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div>
-                <p className="kicker mb-2">Jens Lebensmittel</p>
-                <div className="divide-y divide-[var(--espresso-14)]">
-                  {filteredJen.map((food) => {
-                    const key = `jen:${food.name}`;
-                    const selected = key in picks;
-                    return (
-                      <button key={food.name} type="button"
-                        onClick={() => onTogglePick(key, { kind: "jen", food, grams: food.stueck_g ?? 100, stueckG: food.stueck_g, label: food.stueck_g ? "1 Stück" : "100 g" })}
-                        className="pressable flex w-full items-center gap-3 py-3 text-left"
-                      >
-                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 ${selected ? "border-[var(--coral)] bg-[var(--coral)]" : "border-[var(--espresso-14)]"}`}>
-                          {selected && <Check className="h-3.5 w-3.5 text-white" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                          <p className="text-xs text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="shrink-0 border-t border-[var(--espresso-14)] px-5 py-4">
-              {pickCount > 0 ? (
-                <button type="button" onClick={onNext} className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
-                  {pickCount} ausgewählt → Menge festlegen
-                </button>
-              ) : (
-                <p className="text-center text-sm text-[var(--espresso-40,rgba(52,40,32,0.4))]">Lebensmittel antippen zum Auswählen</p>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="space-y-5">
-                {Object.entries(picks).map(([key, pick]) => {
-                  if (pick.kind === "fav") {
-                    return (
-                      <div key={key} className="soft-card p-4">
-                        <p className="font-black text-[var(--espresso)]">{pick.fav.name}</p>
-                        <p className="mt-0.5 text-sm text-[var(--espresso-50)]">{pick.fav.amount} · {pick.fav.calories} kcal</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={key} className="soft-card p-4">
-                      <p className="mb-4 font-black text-[var(--espresso)]">{pick.food.name}</p>
-                      <AmountStepper
-                        amount={pick.grams}
-                        stueckG={pick.stueckG}
-                        onChange={(grams, lbl) => onUpdatePickAmount(key, grams, lbl ?? `${grams} g`)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="shrink-0 border-t border-[var(--espresso-14)] px-5 py-4 space-y-2">
-              <button type="button" onClick={onSave} className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
-                {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : `${pickCount} Mahlzeit${pickCount !== 1 ? "en" : ""} hinzufügen`}
-              </button>
-              <button type="button" onClick={onBack} className="pressable flex h-10 w-full items-center justify-center rounded-md text-sm font-bold text-[var(--espresso-50)]">
-                ← Zurück zur Auswahl
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
 }

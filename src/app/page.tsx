@@ -217,6 +217,7 @@ export default function Home() {
   const [authMessage, setAuthMessage] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState("");
   const [date] = useState(todayISO());
@@ -354,6 +355,12 @@ export default function Home() {
   }, [user, activeProfileId, date]);
 
   useEffect(() => {
+    if (!saveError) return;
+    const t = setTimeout(() => setSaveError(""), 4000);
+    return () => clearTimeout(t);
+  }, [saveError]);
+
+  useEffect(() => {
     if (foodQuery.length < 2) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -478,7 +485,9 @@ export default function Home() {
 
     const { error } = await supabase.from("meal_entries").insert(payload);
 
-    if (!error && mealForm.saveFavorite) {
+    if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
+
+    if (mealForm.saveFavorite) {
       await supabase.from("favorite_meals").insert({
         user_id: user.id,
         profile_id: activeProfile.id,
@@ -504,7 +513,7 @@ export default function Home() {
   async function quickAddFavorite(favorite: FavoriteMeal) {
     if (!supabase || !user || !activeProfile) return;
     setSaving(true);
-    await supabase.from("meal_entries").insert({
+    const { error } = await supabase.from("meal_entries").insert({
       user_id: user.id,
       profile_id: activeProfile.id,
       date,
@@ -516,6 +525,7 @@ export default function Home() {
       carbs: favorite.carbs,
       fat: favorite.fat,
     });
+    if (error) { setSaveError("Favorit konnte nicht hinzugefügt werden."); setSaving(false); return; }
     await refreshDay();
     setSaving(false);
   }
@@ -523,7 +533,8 @@ export default function Home() {
   async function deleteMeal(mealId: string) {
     if (!supabase) return;
     setSaving(true);
-    await supabase.from("meal_entries").delete().eq("id", mealId);
+    const { error } = await supabase.from("meal_entries").delete().eq("id", mealId);
+    if (error) { setSaveError("Mahlzeit konnte nicht gelöscht werden."); setSaving(false); return; }
     await refreshDay();
     setSaving(false);
   }
@@ -531,7 +542,8 @@ export default function Home() {
   async function deleteFavorite(favoriteId: string) {
     if (!supabase) return;
     setSaving(true);
-    await supabase.from("favorite_meals").delete().eq("id", favoriteId);
+    const { error } = await supabase.from("favorite_meals").delete().eq("id", favoriteId);
+    if (error) { setSaveError("Favorit konnte nicht gelöscht werden."); setSaving(false); return; }
     await refreshFavorites();
     setSaving(false);
   }
@@ -641,7 +653,7 @@ export default function Home() {
     if (!supabase || !user || !activeProfile) return;
     setSaving(true);
 
-    await supabase.from("daily_notes").upsert(
+    const { error: noteError } = await supabase.from("daily_notes").upsert(
       {
         user_id: user.id,
         profile_id: activeProfile.id,
@@ -663,6 +675,7 @@ export default function Home() {
       { onConflict: "user_id,profile_id,date" },
     );
 
+    if (noteError) { setSaveError("Check-In konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     setSaving(false);
   }
@@ -761,6 +774,13 @@ export default function Home() {
             </button>
           ))}
         </div>
+
+        {saveError && (
+          <div className="mb-4 flex items-center justify-between rounded-md bg-[rgba(230,80,60,0.10)] px-4 py-3 text-sm font-bold text-[var(--coral-dark)]">
+            {saveError}
+            <button type="button" onClick={() => setSaveError("")} className="ml-3 text-lg leading-none">×</button>
+          </div>
+        )}
 
         {activeProfile ? (
           <>

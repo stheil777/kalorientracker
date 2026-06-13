@@ -823,7 +823,7 @@ export default function Home() {
               </section>
             ) : null}
 
-            <section className="app-card reveal-in reveal-delay-2 mb-5 overflow-hidden p-5">
+            <section className="app-card reveal-in reveal-delay-2 mb-5 p-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
@@ -883,19 +883,25 @@ export default function Home() {
                     key={type}
                     type="button"
                     onClick={() => { setActiveMealType(activeMealType === type ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
-                    className="pressable app-card relative flex flex-col items-start rounded-xl p-4 text-left"
-                    style={activeMealType === type ? { outline: "2px solid var(--espresso)", outlineOffset: "-2px" } : hasEntries ? { outline: "2px solid var(--coral)", outlineOffset: "-2px" } : undefined}
+                    className="pressable relative flex flex-col items-start rounded-xl p-4 text-left transition-colors"
+                    style={
+                      activeMealType === type
+                        ? { background: "var(--coral)", border: "1px solid var(--coral)", boxShadow: "0 8px 24px rgba(240,107,93,0.28)" }
+                        : hasEntries
+                        ? { background: "rgba(255,255,255,0.78)", border: "1px solid rgba(217,164,65,0.18)", outline: "2px solid var(--coral)", outlineOffset: "-2px", boxShadow: "0 18px 46px rgba(52,40,32,0.045)" }
+                        : { background: "rgba(255,255,255,0.78)", border: "1px solid rgba(217,164,65,0.18)", boxShadow: "0 18px 46px rgba(52,40,32,0.045)" }
+                    }
                   >
-                    {hasEntries && (
+                    {hasEntries && activeMealType !== type && (
                       <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--coral)]">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
-                    <p className="text-sm font-black text-[var(--espresso-50)]">{mealLabels[type]}</p>
-                    <p className={`serif mt-1 text-2xl leading-none ${hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
+                    <p className={`text-sm font-black ${activeMealType === type ? "text-white/80" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
+                    <p className={`serif mt-1 text-2xl leading-none ${activeMealType === type ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
                       {hasEntries ? `${typeKcal}` : "+"}
                     </p>
-                    {hasEntries && <p className="mt-0.5 text-xs text-[var(--espresso-40,rgba(52,40,32,0.4))]">kcal</p>}
+                    {hasEntries && <p className={`mt-0.5 text-xs ${activeMealType === type ? "text-white/70" : "text-[var(--espresso-40,rgba(52,40,32,0.4))]"}`}>kcal</p>}
                   </button>
                 );
               })}
@@ -1758,7 +1764,7 @@ function FoodSearch({
       </label>
 
       {showResults && !isEmpty ? (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[var(--espresso-14)] bg-white shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
+        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-[var(--espresso-14)] bg-white shadow-[0_8px_32px_rgba(52,40,32,0.12)]">
           <div className="max-h-72 overflow-y-auto overscroll-contain">
             {jenFoods.length > 0 && (
               <>

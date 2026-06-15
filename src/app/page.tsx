@@ -239,6 +239,7 @@ export default function Home() {
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [editingGoals, setEditingGoals] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
   const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
@@ -477,6 +478,7 @@ export default function Home() {
         carbs: Math.round(per100g.carbs * f * 10) / 10,
         fat: Math.round(per100g.fat * f * 10) / 10,
       });
+      setFavoritesOpen(true);
     }
     await refreshFavorites();
   }
@@ -1049,7 +1051,7 @@ export default function Home() {
 
             {activeMealType && (
               <div className="mb-5 space-y-2">
-                <AccordionSection title="Meine Favoriten" icon={<Star />}>
+                <AccordionSection title="Meine Favoriten" icon={<Star />} open={favoritesOpen} onOpenChange={setFavoritesOpen}>
                   {favorites.length === 0 ? (
                     <p className="text-sm text-[var(--espresso-50)]">Noch keine Favoriten gespeichert.</p>
                   ) : (

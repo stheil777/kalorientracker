@@ -1005,11 +1005,11 @@ export default function Home() {
                       {hasEntries ? typeKcal : "+"}
                     </p>
                     {hasEntries ? (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/70" : "text-[var(--espresso-40,rgba(52,40,32,0.4))]"}`}>
-                        kcal <span className={isActive ? "text-white/40" : "text-[var(--espresso-28)]"}>/ {targetKcal}</span>
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/70" : "text-[var(--espresso-50)]"}`}>
+                        kcal <span className={isActive ? "text-white/50" : "text-[var(--espresso-50)]"}>/ {targetKcal}</span>
                       </p>
                     ) : (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/50" : "text-[var(--espresso-28)]"}`}>Ziel {targetKcal}</p>
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/60" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
                     )}
                     <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: isActive ? "rgba(255,255,255,0.18)" : "rgba(52,40,32,0.06)" }}>
                       {pct > 0 && <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "rgba(255,255,255,0.65)" : "var(--coral)" }} />}

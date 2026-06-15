@@ -239,6 +239,7 @@ export default function Home() {
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
   const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
@@ -383,6 +384,10 @@ export default function Home() {
     const t = setTimeout(() => setSaveError(""), 4000);
     return () => clearTimeout(t);
   }, [saveError]);
+
+  useEffect(() => {
+    if (profileNeedsSetup) setProfileModalOpen(true);
+  }, [profileNeedsSetup]);
 
   useEffect(() => {
     if (foodQuery.length < 2) return;
@@ -605,6 +610,7 @@ export default function Home() {
 
     setSaving(false);
     setProfileOpen(false);
+    setProfileModalOpen(false);
   }
 
   function selectProfile(profile: Profile) {
@@ -831,12 +837,23 @@ export default function Home() {
   return (
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pb-28 pt-12">
-        <header className="reveal-in mb-6">
-          <p className="kicker mb-2">{formatGermanDate(date)}</p>
-          <h1 className="serif text-[2.55rem] leading-none text-[var(--espresso)]">
-            Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
-          </h1>
-          <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+        <header className="reveal-in mb-6 flex items-start justify-between">
+          <div>
+            <p className="kicker mb-2">{formatGermanDate(date)}</p>
+            <h1 className="serif text-[2.55rem] leading-none text-[var(--espresso)]">
+              Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
+            </h1>
+            <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+          </div>
+          {activeProfile && (
+            <button
+              type="button"
+              onClick={() => { setGoalForm(goalsFromProfile(activeProfile)); setProfileModalOpen(true); }}
+              className="pressable mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[var(--espresso-50)] shadow-sm hover:text-[var(--coral)]"
+            >
+              <Settings2 className="h-5 w-5" />
+            </button>
+          )}
         </header>
 
         {saveError && (
@@ -848,26 +865,7 @@ export default function Home() {
 
         {activeProfile ? (
           <>
-            {profileNeedsSetup ? (
-              <section className="app-card reveal-in reveal-delay-2 mb-5 p-4">
-                <p className="kicker mb-2">Einmaliges Setup</p>
-                <h2 className="serif mb-3 text-3xl leading-tight text-[var(--espresso)]">
-                  Erst deine Daten, dann sinnvolle Ziele.
-                </h2>
-                <p className="mb-4 text-sm leading-6 text-[var(--espresso-50)]">
-                  Diese Werte bleiben pro Profil gespeichert. Daraus berechnen wir Kalorien und Makros als Startpunkt.
-                </p>
-                <ProfileSetupForm
-                  goalForm={goalForm}
-                  setGoalForm={setGoalForm}
-                  calculatedPreview={calculatedPreview}
-                  saving={saving}
-                  onSubmit={saveGoals}
-                />
-              </section>
-            ) : null}
-
-            <AccordionSection title="Check-In" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
+            <AccordionSection title="Daily Check-in" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
               <form onSubmit={saveDailyNote} className="space-y-3">
                 <ToggleRow
                   label="Training heute?"
@@ -1178,20 +1176,38 @@ export default function Home() {
               </div>
             )}
 
-            {!profileNeedsSetup && (
-              <AccordionSection title="Profil & Ziel anpassen" icon={<Settings2 />} open={profileOpen} onOpenChange={setProfileOpen}>
-                <ProfileSetupForm
-                  goalForm={goalForm}
-                  setGoalForm={setGoalForm}
-                  calculatedPreview={calculatedPreview}
-                  saving={saving}
-                  onSubmit={saveGoals}
-                />
-              </AccordionSection>
-            )}
           </>
         ) : null}
       </div>
+
+      {profileModalOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{ background: "var(--coral)" }}>
+          <div className="flex items-center justify-between px-5 pb-4 pt-12">
+            <div>
+              <p className="text-[0.78rem] font-bold uppercase tracking-[0.08em] text-white/60">Profil</p>
+              <h2 className="serif mt-0.5 text-3xl italic leading-tight text-white">Deine Basis.</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setProfileModalOpen(false)}
+              className="pressable flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 px-5 pb-32">
+            <ProfileSetupForm
+              inverted
+              goalForm={goalForm}
+              setGoalForm={setGoalForm}
+              calculatedPreview={calculatedPreview}
+              saving={saving}
+              onSubmit={saveGoals}
+            />
+          </div>
+        </div>
+      )}
+
       <footer className="pb-12 pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
         <hr className="mx-auto mt-6 w-16 border-[var(--espresso-14)]" />
@@ -1400,169 +1416,80 @@ function ProfileSetupForm({
   calculatedPreview,
   saving,
   onSubmit,
+  inverted,
 }: {
   goalForm: typeof blankGoals;
   setGoalForm: (form: typeof blankGoals) => void;
   calculatedPreview: ReturnType<typeof calculateTargets>;
   saving: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  inverted?: boolean;
 }) {
+  const inv = inverted;
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Gewicht kg"
-          type="number"
-          value={goalForm.current_weight}
-          onChange={(value) => setGoalForm({ ...goalForm, current_weight: value })}
-          required
-        />
-        <Input
-          label="Größe cm"
-          type="number"
-          value={goalForm.height_cm}
-          onChange={(value) => setGoalForm({ ...goalForm, height_cm: value })}
-          required
-        />
-        <Input
-          label="Alter"
-          type="number"
-          value={goalForm.age}
-          onChange={(value) => setGoalForm({ ...goalForm, age: value })}
-          required
-        />
-        <SelectField
-          label="Körper"
-          value={goalForm.sex}
-          onChange={(value) => setGoalForm({ ...goalForm, sex: value as Sex })}
-          options={[
-            { value: "male", label: "Männlich" },
-            { value: "female", label: "Weiblich" },
-          ]}
-        />
+        <Input inverted={inv} label="Gewicht kg" type="number" value={goalForm.current_weight} onChange={(value) => setGoalForm({ ...goalForm, current_weight: value })} required />
+        <Input inverted={inv} label="Größe cm" type="number" value={goalForm.height_cm} onChange={(value) => setGoalForm({ ...goalForm, height_cm: value })} required />
+        <Input inverted={inv} label="Alter" type="number" value={goalForm.age} onChange={(value) => setGoalForm({ ...goalForm, age: value })} required />
+        <SelectField inverted={inv} label="Körper" value={goalForm.sex} onChange={(value) => setGoalForm({ ...goalForm, sex: value as Sex })} options={[{ value: "male", label: "Männlich" }, { value: "female", label: "Weiblich" }]} />
       </div>
-
-      <SelectField
-        label="Aktivität"
-        value={goalForm.activity_level}
-        onChange={(value) => setGoalForm({ ...goalForm, activity_level: value as ActivityLevel })}
-        options={(Object.keys(activityLabels) as ActivityLevel[]).map((value) => ({ value, label: activityLabels[value] }))}
-      />
-      <SelectField
-        label="Ziel"
-        value={goalForm.goal_type}
-        onChange={(value) => setGoalForm({ ...goalForm, goal_type: value as GoalType })}
-        options={(Object.keys(goalLabels) as GoalType[]).map((value) => ({ value, label: goalLabels[value] }))}
-      />
-      <SelectField
-        label="Ernährungsform"
-        value={goalForm.diet_type}
-        onChange={(value) => setGoalForm({ ...goalForm, diet_type: value as DietType })}
-        options={(Object.keys(dietLabels) as DietType[]).map((value) => ({ value, label: dietLabels[value] }))}
-      />
+      <SelectField inverted={inv} label="Aktivität" value={goalForm.activity_level} onChange={(value) => setGoalForm({ ...goalForm, activity_level: value as ActivityLevel })} options={(Object.keys(activityLabels) as ActivityLevel[]).map((value) => ({ value, label: activityLabels[value] }))} />
+      <SelectField inverted={inv} label="Ziel" value={goalForm.goal_type} onChange={(value) => setGoalForm({ ...goalForm, goal_type: value as GoalType })} options={(Object.keys(goalLabels) as GoalType[]).map((value) => ({ value, label: goalLabels[value] }))} />
+      <SelectField inverted={inv} label="Ernährungsform" value={goalForm.diet_type} onChange={(value) => setGoalForm({ ...goalForm, diet_type: value as DietType })} options={(Object.keys(dietLabels) as DietType[]).map((value) => ({ value, label: dietLabels[value] }))} />
 
       {calculatedPreview ? (
-        <div className="soft-card p-3">
+        <div className={`rounded-lg p-3 ${inv ? "bg-white/15" : "soft-card"}`}>
           <div className="mb-3 flex items-center gap-2">
-            <Calculator className="h-4 w-4 text-[var(--coral)]" />
-            <p className="text-sm font-black text-[var(--espresso)]">Berechneter Startpunkt</p>
+            <Calculator className={`h-4 w-4 ${inv ? "text-white/70" : "text-[var(--coral)]"}`} />
+            <p className={`text-sm font-black ${inv ? "text-white" : "text-[var(--espresso)]"}`}>Berechneter Startpunkt</p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
-            <PreviewMetric label="kcal" value={calculatedPreview.calories} />
-            <PreviewMetric label="Protein" value={`${calculatedPreview.protein} g`} />
-            <PreviewMetric label="Carbs" value={`${calculatedPreview.carbs} g`} />
-            <PreviewMetric label="Fett" value={`${calculatedPreview.fat} g`} />
+            <PreviewMetric inverted={inv} label="kcal" value={calculatedPreview.calories} />
+            <PreviewMetric inverted={inv} label="Protein" value={`${calculatedPreview.protein} g`} />
+            <PreviewMetric inverted={inv} label="Carbs" value={`${calculatedPreview.carbs} g`} />
+            <PreviewMetric inverted={inv} label="Fett" value={`${calculatedPreview.fat} g`} />
           </div>
-          <p className="mt-3 text-xs leading-5 text-[var(--espresso-50)]">
+          <p className={`mt-3 text-xs leading-5 ${inv ? "text-white/55" : "text-[var(--espresso-50)]"}`}>
             Formel: Mifflin-St Jeor plus Aktivitätsfaktor. Das ist ein sinnvoller Startwert, kein medizinischer Wert.
           </p>
         </div>
       ) : null}
 
       <div className="pt-2">
-        <p className="kicker mb-3">Persönliches Profil</p>
+        <p className={`kicker mb-3 ${inv ? "text-white/60" : ""}`}>Persönliches Profil</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Wunschgewicht kg"
-              type="number"
-              value={goalForm.target_weight}
-              onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })}
-            />
-            <SelectField
-              label="Training / Woche"
-              value={goalForm.training_frequency}
-              onChange={(value) => setGoalForm({ ...goalForm, training_frequency: value })}
-              options={[
-                { value: "0", label: "Kein Training" },
-                { value: "1", label: "1 Tag" },
-                { value: "2", label: "2 Tage" },
-                { value: "3", label: "3 Tage" },
-                { value: "4", label: "4 Tage" },
-                { value: "5", label: "5 Tage" },
-                { value: "6", label: "6 Tage" },
-                { value: "7", label: "Täglich" },
-              ]}
+            <Input inverted={inv} label="Wunschgewicht kg" type="number" value={goalForm.target_weight} onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })} />
+            <SelectField inverted={inv} label="Training / Woche" value={goalForm.training_frequency} onChange={(value) => setGoalForm({ ...goalForm, training_frequency: value })}
+              options={[{ value: "0", label: "Kein Training" }, { value: "1", label: "1 Tag" }, { value: "2", label: "2 Tage" }, { value: "3", label: "3 Tage" }, { value: "4", label: "4 Tage" }, { value: "5", label: "5 Tage" }, { value: "6", label: "6 Tage" }, { value: "7", label: "Täglich" }]}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Schlafziel Stunden"
-              type="number"
-              step="0.5"
-              value={goalForm.sleep_goal_hours}
-              onChange={(value) => setGoalForm({ ...goalForm, sleep_goal_hours: value })}
-            />
-            <SelectField
-              label="Alkohol"
-              value={goalForm.alcohol_frequency}
-              onChange={(value) => setGoalForm({ ...goalForm, alcohol_frequency: value })}
-              options={[
-                { value: "nie", label: "Nie" },
-                { value: "selten", label: "Selten" },
-                { value: "1-2x", label: "1-2x pro Woche" },
-                { value: "oefter", label: "Öfter" },
-              ]}
+            <Input inverted={inv} label="Schlafziel Stunden" type="number" step="0.5" value={goalForm.sleep_goal_hours} onChange={(value) => setGoalForm({ ...goalForm, sleep_goal_hours: value })} />
+            <SelectField inverted={inv} label="Alkohol" value={goalForm.alcohol_frequency} onChange={(value) => setGoalForm({ ...goalForm, alcohol_frequency: value })}
+              options={[{ value: "nie", label: "Nie" }, { value: "selten", label: "Selten" }, { value: "1-2x", label: "1-2x pro Woche" }, { value: "oefter", label: "Öfter" }]}
             />
           </div>
-          <ToggleRow
-            label="Zyklus / Periode relevant?"
-            checked={goalForm.cycle_relevant}
-            onChange={(checked) => setGoalForm({ ...goalForm, cycle_relevant: checked })}
-          />
-          <TextArea
-            label="Unverträglichkeiten"
-            value={goalForm.intolerances}
-            onChange={(value) => setGoalForm({ ...goalForm, intolerances: value })}
-            placeholder="z.B. Laktose, Gluten, Nüsse..."
-          />
-          <TextArea
-            label="No-go Foods"
-            value={goalForm.no_go_foods}
-            onChange={(value) => setGoalForm({ ...goalForm, no_go_foods: value })}
-            placeholder="Was kommt gar nicht auf den Teller?"
-          />
-          <TextArea
-            label="Lieblingsfoods"
-            value={goalForm.favorite_foods}
-            onChange={(value) => setGoalForm({ ...goalForm, favorite_foods: value })}
-            placeholder="Was isst du besonders gerne?"
-          />
+          <ToggleRow inverted={inv} label="Zyklus / Periode relevant?" checked={goalForm.cycle_relevant} onChange={(checked) => setGoalForm({ ...goalForm, cycle_relevant: checked })} />
+          <TextArea inverted={inv} label="Unverträglichkeiten" value={goalForm.intolerances} onChange={(value) => setGoalForm({ ...goalForm, intolerances: value })} placeholder="z.B. Laktose, Gluten, Nüsse..." />
+          <TextArea inverted={inv} label="No-go Foods" value={goalForm.no_go_foods} onChange={(value) => setGoalForm({ ...goalForm, no_go_foods: value })} placeholder="Was kommt gar nicht auf den Teller?" />
+          <TextArea inverted={inv} label="Lieblingsfoods" value={goalForm.favorite_foods} onChange={(value) => setGoalForm({ ...goalForm, favorite_foods: value })} placeholder="Was isst du besonders gerne?" />
         </div>
       </div>
 
-      <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
+      <button className={`flex h-14 w-full items-center justify-center rounded-md text-base font-black pressable ${inv ? "bg-white text-[var(--coral)]" : "coral-button"}`}>
         {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Profil speichern"}
       </button>
     </form>
   );
 }
 
-function PreviewMetric({ label, value }: { label: string; value: number | string }) {
+function PreviewMetric({ label, value, inverted }: { label: string; value: number | string; inverted?: boolean }) {
   return (
     <div>
-      <p className="serif text-xl text-[var(--espresso)]">{value}</p>
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--espresso-50)]">{label}</p>
+      <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
+      <p className={`text-[0.68rem] font-bold uppercase tracking-[0.06em] ${inverted ? "text-white/60" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1572,16 +1499,18 @@ function SelectField({
   value,
   onChange,
   options,
+  inverted,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
+  inverted?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="field">
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className={inverted ? "field-inv" : "field"}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -1596,16 +1525,18 @@ function Input({
   label,
   value,
   onChange,
+  inverted,
   ...props
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inverted?: boolean;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} className="field" {...props} />
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <input value={value} onChange={(event) => onChange(event.target.value)} className={inverted ? "field-inv" : "field"} {...props} />
     </label>
   );
 }
@@ -1672,9 +1603,9 @@ function TrainingPicker({
   );
 }
 
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+function ToggleRow({ label, checked, onChange, inverted }: { label: string; checked: boolean; onChange: (checked: boolean) => void; inverted?: boolean }) {
   return (
-    <label className="soft-card flex items-center justify-between p-3 text-sm font-black text-[var(--espresso)]">
+    <label className={`flex items-center justify-between p-3 text-sm font-black rounded-lg ${inverted ? "bg-white/15 text-white" : "soft-card text-[var(--espresso)]"}`}>
       {label}
       <span
         className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${
@@ -1963,20 +1894,22 @@ function TextArea({
   value,
   onChange,
   placeholder,
+  inverted,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  inverted?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={2}
-        className="field h-auto min-h-16 py-3 text-sm"
+        className={`${inverted ? "field-inv" : "field"} h-auto min-h-16 py-3 text-sm`}
         placeholder={placeholder}
       />
     </label>

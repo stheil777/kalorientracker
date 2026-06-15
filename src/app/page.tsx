@@ -986,7 +986,7 @@ export default function Home() {
                     key={type}
                     type="button"
                     onClick={() => { setActiveMealType(isActive ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
-                    className="pressable relative flex flex-col items-start overflow-hidden rounded-xl p-4 text-left transition-colors"
+                    className="pressable relative flex flex-col items-start overflow-hidden rounded-xl px-4 pb-10 pt-4 text-left transition-colors"
                     style={
                       isActive
                         ? { background: "var(--coral)", border: "1px solid var(--coral)", boxShadow: "0 8px 24px rgba(240,107,93,0.28)" }
@@ -1011,8 +1011,8 @@ export default function Home() {
                     ) : (
                       <p className={`mt-0.5 text-xs ${isActive ? "text-white/60" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: isActive ? "rgba(255,255,255,0.18)" : "rgba(52,40,32,0.06)" }}>
-                      {pct > 0 && <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "rgba(255,255,255,0.65)" : "var(--coral)" }} />}
+                    <div className="absolute bottom-0 left-0 right-0 h-[5px]" style={{ background: isActive ? "rgba(255,255,255,0.18)" : "rgba(52,40,32,0.07)" }}>
+                      {pct > 0 && <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "rgba(255,255,255,0.75)" : "var(--coral)" }} />}
                     </div>
                   </button>
                 );

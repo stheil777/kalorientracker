@@ -837,23 +837,23 @@ export default function Home() {
   return (
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pb-28 pt-12">
-        <header className="reveal-in mb-6 flex items-start justify-between">
-          <div>
-            <p className="kicker mb-2">{formatGermanDate(date)}</p>
-            <h1 className="serif text-[2.55rem] leading-none text-[var(--espresso)]">
+        <header className="reveal-in mb-6">
+          <p className="kicker mb-2">{formatGermanDate(date)}</p>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="serif min-w-0 text-[2.55rem] leading-none text-[var(--espresso)]">
               Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
             </h1>
-            <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+            {activeProfile && (
+              <button
+                type="button"
+                onClick={() => { setGoalForm(goalsFromProfile(activeProfile)); setProfileModalOpen(true); }}
+                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--espresso-50)] shadow-sm hover:text-[var(--coral)]"
+              >
+                <Settings2 className="h-5 w-5" />
+              </button>
+            )}
           </div>
-          {activeProfile && (
-            <button
-              type="button"
-              onClick={() => { setGoalForm(goalsFromProfile(activeProfile)); setProfileModalOpen(true); }}
-              className="pressable mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[var(--espresso-50)] shadow-sm hover:text-[var(--coral)]"
-            >
-              <Settings2 className="h-5 w-5" />
-            </button>
-          )}
+          <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
         </header>
 
         {saveError && (

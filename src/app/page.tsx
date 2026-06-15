@@ -1255,10 +1255,14 @@ function AccordionSection({
           <span className="serif text-2xl text-[var(--espresso)]">{title}</span>
         </div>
         <ChevronDown
-          className={`h-5 w-5 text-[var(--espresso-50)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-5 w-5 text-[var(--espresso-50)] transition-transform duration-300 ease-in-out ${open ? "rotate-180" : ""}`}
         />
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4">{children}</div>
+        </div>
+      </div>
     </section>
   );
 }

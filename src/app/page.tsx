@@ -1129,7 +1129,12 @@ export default function Home() {
                   />
                   {inlineKey?.startsWith("search:") && inlineFood && (
                     <div className="mt-3">
-                      <p className="mb-3 text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
+                        <button type="button" onClick={() => saveAsFavorite(inlineFood.name, inlineFood.per100g)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
+                          <Star className={`h-4 w-4 transition-colors ${favNames.has(inlineFood.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
+                        </button>
+                      </div>
                       <AmountStepper amount={inlineGrams} stueckG={inlineFood.stueckG} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
                       <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}

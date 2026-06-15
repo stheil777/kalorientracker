@@ -49,6 +49,13 @@ const mealLabels: Record<MealType, string> = {
   snack: "Snack",
 };
 
+const mealGoalSplit: Record<MealType, number> = {
+  breakfast: 0.25,
+  lunch: 0.35,
+  dinner: 0.30,
+  snack: 0.10,
+};
+
 const TRAINING_ACTIVITIES = [
   { value: "yoga", label: "Yoga", met: 3.0 },
   { value: "pilates", label: "Pilates", met: 3.0 },
@@ -971,30 +978,42 @@ export default function Home() {
                 const typeMeals = mealsByType[type] ?? [];
                 const hasEntries = typeMeals.length > 0;
                 const typeKcal = typeMeals.reduce((s, m) => s + m.calories, 0);
+                const targetKcal = Math.round(activeProfile.calorie_goal * mealGoalSplit[type]);
+                const pct = hasEntries ? Math.min(100, Math.round((typeKcal / targetKcal) * 100)) : 0;
+                const isActive = activeMealType === type;
                 return (
                   <button
                     key={type}
                     type="button"
-                    onClick={() => { setActiveMealType(activeMealType === type ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
-                    className="pressable relative flex flex-col items-start rounded-xl p-4 text-left transition-colors"
+                    onClick={() => { setActiveMealType(isActive ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
+                    className="pressable relative flex flex-col items-start overflow-hidden rounded-xl p-4 text-left transition-colors"
                     style={
-                      activeMealType === type
+                      isActive
                         ? { background: "var(--coral)", border: "1px solid var(--coral)", boxShadow: "0 8px 24px rgba(240,107,93,0.28)" }
                         : hasEntries
                         ? { background: "rgba(255,255,255,0.78)", border: "1px solid rgba(217,164,65,0.18)", outline: "2px solid var(--coral)", outlineOffset: "-2px", boxShadow: "0 18px 46px rgba(52,40,32,0.045)" }
                         : { background: "rgba(255,255,255,0.78)", border: "1px solid rgba(217,164,65,0.18)", boxShadow: "0 18px 46px rgba(52,40,32,0.045)" }
                     }
                   >
-                    {hasEntries && activeMealType !== type && (
+                    {hasEntries && !isActive && (
                       <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--coral)]">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
-                    <p className={`text-sm font-black ${activeMealType === type ? "text-white/80" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
-                    <p className={`serif mt-1 text-2xl leading-none ${activeMealType === type ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
-                      {hasEntries ? `${typeKcal}` : "+"}
+                    <p className={`text-sm font-black ${isActive ? "text-white/80" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
+                    <p className={`serif mt-1 text-2xl leading-none ${isActive ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
+                      {hasEntries ? typeKcal : "+"}
                     </p>
-                    {hasEntries && <p className={`mt-0.5 text-xs ${activeMealType === type ? "text-white/70" : "text-[var(--espresso-40,rgba(52,40,32,0.4))]"}`}>kcal</p>}
+                    {hasEntries ? (
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/70" : "text-[var(--espresso-40,rgba(52,40,32,0.4))]"}`}>
+                        kcal <span className={isActive ? "text-white/40" : "text-[var(--espresso-28)]"}>/ {targetKcal}</span>
+                      </p>
+                    ) : (
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/50" : "text-[var(--espresso-28)]"}`}>Ziel {targetKcal}</p>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: isActive ? "rgba(255,255,255,0.18)" : "rgba(52,40,32,0.06)" }}>
+                      {pct > 0 && <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "rgba(255,255,255,0.65)" : "var(--coral)" }} />}
+                    </div>
                   </button>
                 );
               })}
@@ -1117,9 +1136,11 @@ export default function Home() {
                                   <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
                                   <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
                                 </div>
-                                <div className="flex shrink-0 items-center gap-1.5">
+                                <div className="flex shrink-0 items-center gap-2">
                                   <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
-                                  <Settings2 className="h-3.5 w-3.5 text-[var(--espresso-28)]" />
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
+                                    <Settings2 className="h-3.5 w-3.5" />
+                                  </div>
                                 </div>
                               </button>
                               <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">

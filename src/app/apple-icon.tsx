@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function AppleIcon() {
   const fontData = await readFile(
-    path.join(process.cwd(), "public/fonts/Lora-BoldItalic.woff2"),
+    path.join(process.cwd(), "public/fonts/Lora-Regular.woff2"),
   );
   return new ImageResponse(
     (
@@ -25,20 +25,19 @@ export default async function AppleIcon() {
         <span
           style={{
             color: "white",
-            fontSize: 72,
-            fontWeight: 700,
-            fontStyle: "italic",
+            fontSize: 76,
+            fontWeight: 400,
+            fontStyle: "normal",
             fontFamily: "Lora",
-            letterSpacing: "-1px",
           }}
         >
-          jen
+          Jen
         </span>
       </div>
     ),
     {
       ...size,
-      fonts: [{ name: "Lora", data: fontData, weight: 700, style: "italic" }],
+      fonts: [{ name: "Lora", data: fontData, weight: 400, style: "normal" }],
     },
   );
 }

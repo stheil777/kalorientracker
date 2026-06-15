@@ -258,6 +258,8 @@ export default function Home() {
     return JEN_FOODS.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 8);
   }, [foodQuery, foodFocused]);
 
+  const favNames = useMemo(() => new Set(favorites.map((f) => f.name)), [favorites]);
+
   const showDropdown = foodFocused && (jenMatches.length > 0 || showFoodResults || foodSearching);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
@@ -451,6 +453,19 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     setFavorites((data ?? []) as FavoriteMeal[]);
+  }
+
+  async function saveAsFavorite(name: string, per100g: { calories: number; protein: number; carbs: number; fat: number }) {
+    if (!supabase || !user || !activeProfile || favNames.has(name)) return;
+    await supabase.from("favorite_meals").insert({
+      user_id: user.id, profile_id: activeProfile.id,
+      name, amount: "100 g", meal_type: activeMealType ?? "snack",
+      calories: Math.round(per100g.calories),
+      protein: Math.round(per100g.protein * 10) / 10,
+      carbs: Math.round(per100g.carbs * 10) / 10,
+      fat: Math.round(per100g.fat * 10) / 10,
+    });
+    await refreshFavorites();
   }
 
   async function addStarterFavorites() {
@@ -1067,13 +1082,18 @@ export default function Home() {
                       const isOpen = inlineKey === key;
                       return (
                         <div key={food.name}>
-                          <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex w-full items-center justify-between gap-3 py-3 text-left">
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                              <p className="text-xs text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
-                            </div>
-                            <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                          </button>
+                          <div className="flex items-center gap-1 py-3">
+                            <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                                <p className="text-xs text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
+                              </div>
+                              <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                            </button>
+                            <button type="button" onClick={() => saveAsFavorite(food.name, food.per100g)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
+                              <Star className={`h-4 w-4 transition-colors ${favNames.has(food.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
+                            </button>
+                          </div>
                           {isOpen && (
                             <div className="pb-4">
                               <AmountStepper amount={inlineGrams} stueckG={food.stueck_g} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
@@ -1102,6 +1122,8 @@ export default function Home() {
                       if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
                     }}
                     onSelect={(food) => openInlineFood(`search:${food.name}`, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })}
+                    onFavorite={(food) => saveAsFavorite(food.name, food.per100g)}
+                    favNames={favNames}
                     onFocus={() => setFoodFocused(true)}
                     onDismiss={() => { setShowFoodResults(false); setFoodFocused(false); }}
                   />
@@ -1752,6 +1774,8 @@ function FoodSearch({
   showResults,
   onQueryChange,
   onSelect,
+  onFavorite,
+  favNames,
   onFocus,
   onDismiss,
 }: {
@@ -1762,6 +1786,8 @@ function FoodSearch({
   showResults: boolean;
   onQueryChange: (value: string) => void;
   onSelect: (food: FoodResult) => void;
+  onFavorite: (food: FoodResult) => void;
+  favNames: Set<string>;
   onFocus: () => void;
   onDismiss: () => void;
 }) {
@@ -1816,7 +1842,7 @@ function FoodSearch({
                   </div>
                 )}
                 {jenFoods.map((food) => (
-                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} onFavorite={onFavorite} isFavorite={favNames.has(food.name)} />
                 ))}
               </>
             )}
@@ -1834,7 +1860,7 @@ function FoodSearch({
                   </div>
                 )}
                 {apiResults.map((food) => (
-                  <FoodItem key={food.id} food={food} onSelect={onSelect} />
+                  <FoodItem key={food.id} food={food} onSelect={onSelect} onFavorite={onFavorite} isFavorite={favNames.has(food.name)} />
                 ))}
               </>
             )}
@@ -1849,27 +1875,32 @@ function FoodSearch({
   );
 }
 
-function FoodItem({ food, onSelect }: { food: FoodResult; onSelect: (food: FoodResult) => void }) {
+function FoodItem({ food, onSelect, onFavorite, isFavorite }: { food: FoodResult; onSelect: (food: FoodResult) => void; onFavorite: (food: FoodResult) => void; isFavorite: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(food)}
-      className="pressable flex w-full items-start justify-between gap-3 border-b border-[var(--espresso-14)] px-4 py-3 text-left last:border-0 hover:bg-[rgba(240,107,93,0.05)]"
-    >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-        <div className="mt-0.5 flex items-center gap-1.5">
+    <div className="flex items-stretch border-b border-[var(--espresso-14)] last:border-0">
+      <button
+        type="button"
+        onClick={() => onSelect(food)}
+        className="pressable flex min-w-0 flex-1 items-start justify-between gap-3 px-4 py-3 text-left hover:bg-[rgba(240,107,93,0.05)]"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
           {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
         </div>
-      </div>
-      <div className="shrink-0 text-right">
-        <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
-        <p className="text-xs text-[var(--espresso-50)]">kcal</p>
-        <p className="mt-0.5 text-xs text-[var(--espresso-50)]">
-          P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}
-        </p>
-      </div>
-    </button>
+        <div className="shrink-0 text-right">
+          <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
+          <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+          <p className="mt-0.5 text-xs text-[var(--espresso-50)]">P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}</p>
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={() => onFavorite(food)}
+        className="pressable flex w-10 shrink-0 items-center justify-center border-l border-[var(--espresso-08)] hover:bg-[rgba(240,107,93,0.05)]"
+      >
+        <Star className={`h-4 w-4 transition-colors ${isFavorite ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
+      </button>
+    </div>
   );
 }
 

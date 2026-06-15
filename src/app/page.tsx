@@ -1106,25 +1106,25 @@ export default function Home() {
                         const isEditing = inlineKey === editKey;
                         return (
                           <div key={meal.id}>
-                            <div className="flex items-center justify-between gap-3 py-3">
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
-                                <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
-                                <button type="button" onClick={() => {
-                                  const match = meal.amount?.match(/^(\d+(?:\.\d+)?)\s*g/i);
-                                  const g = match ? parseFloat(match[1]) : 100;
-                                  const p100 = { calories: (meal.calories / g) * 100, protein: (meal.protein / g) * 100, carbs: (meal.carbs / g) * 100, fat: (meal.fat / g) * 100 };
-                                  openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g);
-                                }} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
-                                  <Settings2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
+                            <div className="flex items-center gap-3 py-3">
+                              <button type="button" onClick={() => {
+                                const match = meal.amount?.match(/^(\d+(?:\.\d+)?)\s*g/i);
+                                const g = match ? parseFloat(match[1]) : 100;
+                                const p100 = { calories: (meal.calories / g) * 100, protein: (meal.protein / g) * 100, carbs: (meal.carbs / g) * 100, fat: (meal.fat / g) * 100 };
+                                openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g);
+                              }} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
+                                  <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
+                                  <Settings2 className="h-3.5 w-3.5 text-[var(--espresso-28)]" />
+                                </div>
+                              </button>
+                              <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                             {isEditing && (
                               <div className="pb-4">

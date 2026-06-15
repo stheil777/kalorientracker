@@ -455,19 +455,27 @@ export default function Home() {
     setFavorites((data ?? []) as FavoriteMeal[]);
   }
 
-  async function toggleFavorite(name: string, per100g: { calories: number; protein: number; carbs: number; fat: number }) {
+  async function toggleFavorite(
+    name: string,
+    per100g: { calories: number; protein: number; carbs: number; fat: number },
+    grams?: number,
+    label?: string,
+  ) {
     if (!supabase || !user || !activeProfile) return;
     const existing = favorites.find((f) => f.name === name);
     if (existing) {
       await supabase.from("favorite_meals").delete().eq("id", existing.id);
     } else {
+      const g = grams ?? 100;
+      const lbl = label ?? `${g} g`;
+      const f = g / 100;
       await supabase.from("favorite_meals").insert({
         user_id: user.id, profile_id: activeProfile.id,
-        name, amount: "100 g", meal_type: activeMealType ?? "snack",
-        calories: Math.round(per100g.calories),
-        protein: Math.round(per100g.protein * 10) / 10,
-        carbs: Math.round(per100g.carbs * 10) / 10,
-        fat: Math.round(per100g.fat * 10) / 10,
+        name, amount: lbl, meal_type: activeMealType ?? "snack",
+        calories: Math.round(per100g.calories * f),
+        protein: Math.round(per100g.protein * f * 10) / 10,
+        carbs: Math.round(per100g.carbs * f * 10) / 10,
+        fat: Math.round(per100g.fat * f * 10) / 10,
       });
     }
     await refreshFavorites();
@@ -1095,7 +1103,7 @@ export default function Home() {
                               </div>
                               <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                             </button>
-                            <button type="button" onClick={() => toggleFavorite(food.name, food.per100g)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
+                            <button type="button" onClick={() => { const open = inlineKey === `jen:${food.name}`; toggleFavorite(food.name, food.per100g, open ? inlineGrams : undefined, open ? inlineLabel : undefined); }} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
                               <Star className={`h-4 w-4 transition-colors ${favNames.has(food.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                             </button>
                           </div>
@@ -1136,7 +1144,7 @@ export default function Home() {
                     <div className="mt-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <p className="truncate text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
-                        <button type="button" onClick={() => toggleFavorite(inlineFood.name, inlineFood.per100g)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
+                        <button type="button" onClick={() => toggleFavorite(inlineFood.name, inlineFood.per100g, inlineGrams, inlineLabel)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
                           <Star className={`h-4 w-4 transition-colors ${favNames.has(inlineFood.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                         </button>
                       </div>
@@ -1174,7 +1182,7 @@ export default function Home() {
                                   </div>
                                 </div>
                               </button>
-                              <button type="button" onClick={() => toggleFavorite(meal.food_name, p100)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
+                              <button type="button" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
                                 <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-white text-white" : "text-white/40"}`} />
                               </button>
                               <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-white/25 text-white/70">

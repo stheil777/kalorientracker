@@ -474,7 +474,7 @@ export default function Home() {
     const result =
       authMode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName.trim() } } });
+        : await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName.trim(), full_name: firstName.trim() } } });
 
     if (result.error) {
       setAuthMessage(result.error.message);

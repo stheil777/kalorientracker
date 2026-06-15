@@ -18,7 +18,6 @@ import {
   Heart,
   Loader2,
   LogOut,
-  Plus,
   Search,
   Settings2,
   Star,
@@ -649,6 +648,24 @@ export default function Home() {
     setFoodQuery(""); setFoodResults([]); setShowFoodResults(false); setFoodFocused(false);
   }
 
+  async function inlineUpdateMeal(mealId: string) {
+    if (!supabase || !inlineFood) return;
+    setSaving(true);
+    const f = inlineGrams / 100;
+    const { error } = await supabase.from("meal_entries").update({
+      amount: inlineLabel,
+      calories: Math.round(inlineFood.per100g.calories * f),
+      protein: Math.round(inlineFood.per100g.protein * f * 10) / 10,
+      carbs: Math.round(inlineFood.per100g.carbs * f * 10) / 10,
+      fat: Math.round(inlineFood.per100g.fat * f * 10) / 10,
+    }).eq("id", mealId);
+    if (error) { setSaveError("Konnte nicht gespeichert werden."); setSaving(false); return; }
+    await refreshDay();
+    setSaving(false);
+    setInlineKey(null);
+    setInlineFood(null);
+  }
+
   async function quickAddFavForType(fav: FavoriteMeal, mealType: MealType) {
     if (!supabase || !user || !activeProfile) return;
     setSaving(true);
@@ -1084,23 +1101,42 @@ export default function Home() {
                   <div className="app-card p-4">
                     <p className="kicker mb-3">Heute {mealLabels[activeMealType]}</p>
                     <div className="divide-y divide-[var(--espresso-14)]">
-                      {(mealsByType[activeMealType] ?? []).map((meal) => (
-                        <div key={meal.id} className="flex items-center justify-between gap-3 py-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
-                            <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
+                      {(mealsByType[activeMealType] ?? []).map((meal) => {
+                        const editKey = `edit:${meal.id}`;
+                        const isEditing = inlineKey === editKey;
+                        return (
+                          <div key={meal.id}>
+                            <div className="flex items-center justify-between gap-3 py-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
+                                <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
+                                <button type="button" onClick={() => {
+                                  const match = meal.amount?.match(/^(\d+(?:\.\d+)?)\s*g/i);
+                                  const g = match ? parseFloat(match[1]) : 100;
+                                  const p100 = { calories: (meal.calories / g) * 100, protein: (meal.protein / g) * 100, carbs: (meal.carbs / g) * 100, fat: (meal.fat / g) * 100 };
+                                  openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g);
+                                }} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
+                                  <Settings2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {isEditing && (
+                              <div className="pb-4">
+                                <AmountStepper amount={inlineGrams} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                                <button type="button" onClick={() => inlineUpdateMeal(meal.id)} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
-                            <button type="button" onClick={() => quickAddFavForType({ id: meal.id, user_id: meal.user_id, profile_id: meal.profile_id ?? "", name: meal.food_name, amount: meal.amount, meal_type: meal.meal_type, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, created_at: "" }, activeMealType)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.1)] text-[var(--coral)]">
-                              <Plus className="h-4 w-4" />
-                            </button>
-                            <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

@@ -1026,8 +1026,8 @@ export default function Home() {
                     ) : (
                       <p className={`mt-0.5 text-xs ${isActive ? "text-white/60" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 h-[5px]" style={{ background: isActive ? "rgba(255,255,255,0.18)" : "rgba(52,40,32,0.07)" }}>
-                      {pct > 0 && <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "rgba(255,255,255,0.75)" : "var(--coral)" }} />}
+                    <div className="absolute bottom-3 left-3 right-3 h-[5px] rounded-full" style={{ background: isActive ? "rgba(255,255,255,0.22)" : "rgba(52,40,32,0.07)" }}>
+                      {pct > 0 && <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "#ffffff" : "var(--coral)" }} />}
                     </div>
                   </button>
                 );

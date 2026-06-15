@@ -619,12 +619,14 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }) {
+  function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }, initialGrams?: number) {
     if (inlineKey === key) { setInlineKey(null); setInlineFood(null); return; }
     setInlineKey(key);
     setInlineFood(food);
-    setInlineGrams(food.stueckG ?? 100);
-    setInlineLabel(food.stueckG ? "1 Stück" : "100 g");
+    const g = initialGrams ?? food.stueckG ?? 100;
+    setInlineGrams(g);
+    setInlineLabel(food.stueckG && initialGrams === undefined ? "1 Stück" : `${g} g`);
+    if (key.startsWith("search:")) { setFoodFocused(false); setShowFoodResults(false); }
   }
 
   async function inlineAddMeal() {
@@ -994,7 +996,12 @@ export default function Home() {
                         return (
                           <div key={fav.id}>
                             <div className="flex items-center gap-3 py-3">
-                              <button type="button" onClick={() => { if (isOpen) { setInlineKey(null); } else { setInlineKey(key); setInlineFood(null); } }} className="pressable min-w-0 flex-1 text-left">
+                              <button type="button" onClick={() => {
+                                const match = fav.amount.match(/^(\d+(?:\.\d+)?)\s*g/i);
+                                const g = match ? parseFloat(match[1]) : 100;
+                                const p100 = { calories: (fav.calories / g) * 100, protein: (fav.protein / g) * 100, carbs: (fav.carbs / g) * 100, fat: (fav.fat / g) * 100 };
+                                openInlineFood(key, { name: fav.name, per100g: p100 }, g);
+                              }} className="pressable min-w-0 flex-1 text-left">
                                 <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
                                 <p className="text-xs text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
                               </button>
@@ -1003,9 +1010,9 @@ export default function Home() {
                               </button>
                             </div>
                             {isOpen && (
-                              <div className="pb-3">
-                                <p className="mb-2 text-xs text-[var(--espresso-50)]">Menge: {fav.amount} · {fav.calories} kcal</p>
-                                <button type="button" onClick={() => quickAddFavForType(fav, activeMealType)} className="coral-button flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                              <div className="pb-4">
+                                <AmountStepper amount={inlineGrams} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                                <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
                                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
                                 </button>
                               </div>

@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function AppleIcon() {
   const fontData = await readFile(
-    path.join(process.cwd(), "public/fonts/Lora-Regular.woff2"),
+    path.join(process.cwd(), "public/fonts/Lora-Regular.ttf"),
   );
   return new ImageResponse(
     (

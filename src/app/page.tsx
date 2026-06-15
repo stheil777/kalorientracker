@@ -847,7 +847,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => { setGoalForm(goalsFromProfile(activeProfile)); setProfileModalOpen(true); }}
-                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--espresso-50)] shadow-sm hover:text-[var(--coral)]"
+                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--coral)] shadow-sm"
               >
                 <Settings2 className="h-5 w-5" />
               </button>
@@ -1181,21 +1181,21 @@ export default function Home() {
       </div>
 
       {profileModalOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{ background: "var(--coral)" }}>
-          <div className="flex items-center justify-between px-5 pb-4 pt-12">
-            <div>
-              <p className="text-[0.78rem] font-bold uppercase tracking-[0.08em] text-white/60">Profil</p>
-              <h2 className="serif mt-0.5 text-3xl italic leading-tight text-white">Deine Basis.</h2>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
+          <div className="mx-auto max-w-md px-4 pb-32 pt-12">
+            <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white/60">{formatGermanDate(date)}</p>
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
+                Deine Basis.
+              </h2>
+              <button
+                type="button"
+                onClick={() => setProfileModalOpen(false)}
+                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(false)}
-              className="pressable flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 px-5 pb-32">
             <ProfileSetupForm
               inverted
               goalForm={goalForm}

@@ -1088,7 +1088,7 @@ export default function Home() {
                   </div>
                 </AccordionSection>
 
-                <div className="app-card p-4">
+                <div className="app-card relative z-10 p-4">
                   <p className="kicker mb-3">Suche</p>
                   <FoodSearch
                     query={foodQuery}

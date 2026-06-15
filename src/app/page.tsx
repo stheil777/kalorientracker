@@ -1637,11 +1637,17 @@ function Progress({ current, goal }: { current: number; goal: number }) {
   );
 }
 
+function fmtG(n: number): string {
+  const r = Math.round(n * 10) / 10;
+  return r % 1 === 0 ? String(r) : r.toFixed(1);
+}
+
 function Macro({ label, value, goal }: { label: string; value: number; goal: number }) {
+  const remaining = Math.max(goal - value, 0);
   return (
     <div className="soft-card p-3">
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
-      <p className="serif mt-2 text-2xl text-[var(--espresso)]">{Math.max(goal - value, 0)} g</p>
+      <p className="serif mt-2 text-2xl text-[var(--espresso)]">{fmtG(remaining)} g</p>
       <p className="text-xs text-[var(--espresso-50)]">von {goal} g</p>
     </div>
   );

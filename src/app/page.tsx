@@ -238,6 +238,7 @@ export default function Home() {
   const [dailyNote, setDailyNote] = useState(blankNote);
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
   const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
@@ -603,6 +604,7 @@ export default function Home() {
     }
 
     setSaving(false);
+    setProfileOpen(false);
   }
 
   function selectProfile(profile: Profile) {
@@ -1177,7 +1179,7 @@ export default function Home() {
             )}
 
             {!profileNeedsSetup && (
-              <AccordionSection title="Profil & Ziel anpassen" icon={<Settings2 />}>
+              <AccordionSection title="Profil & Ziel anpassen" icon={<Settings2 />} open={profileOpen} onOpenChange={setProfileOpen}>
                 <ProfileSetupForm
                   goalForm={goalForm}
                   setGoalForm={setGoalForm}

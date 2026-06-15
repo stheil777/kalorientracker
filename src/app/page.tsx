@@ -237,7 +237,6 @@ export default function Home() {
   const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
   const [dailyNote, setDailyNote] = useState(blankNote);
   const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
-  const [editingGoals, setEditingGoals] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
@@ -598,8 +597,7 @@ export default function Home() {
     if (saveError) { setSaveError("Profil konnte nicht gespeichert werden: " + saveError.message); setSaving(false); return; }
     if (data) {
       setProfiles((current) => current.map((profile) => (profile.id === data.id ? (data as Profile) : profile)));
-      setEditingGoals(false);
-      if (favorites.length === 0) {
+            if (favorites.length === 0) {
         await addStarterFavorites();
       }
     }
@@ -610,14 +608,7 @@ export default function Home() {
   function selectProfile(profile: Profile) {
     setActiveProfileId(profile.id);
     setGoalForm(goalsFromProfile(profile));
-    setEditingGoals(false);
-  }
-
-  function toggleGoals() {
-    if (!activeProfile) return;
-    setGoalForm(goalsFromProfile(activeProfile));
-    setEditingGoals((current) => !current);
-  }
+      }
 
   async function saveDailyNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -978,28 +969,7 @@ export default function Home() {
                 <WaterStatus water={dailyNote.water_intake} />
                 <BodyScore energy={dailyNote.energy_level} mood={dailyNote.mood} satiation={dailyNote.satiation} />
               </div>
-              <button
-                type="button"
-                onClick={toggleGoals}
-                className="coral-button pressable mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md text-sm font-black"
-              >
-                <Settings2 className="h-4 w-4" />
-                Profil & Ziel {editingGoals ? "ausblenden" : "anpassen"}
-              </button>
             </section>
-
-            {editingGoals && !profileNeedsSetup ? (
-              <section className="app-card reveal-in mb-5 p-4">
-                <SectionTitle icon={<Settings2 />} title={`${activeProfile.name}s Profil`} />
-                <ProfileSetupForm
-                  goalForm={goalForm}
-                  setGoalForm={setGoalForm}
-                  calculatedPreview={calculatedPreview}
-                  saving={saving}
-                  onSubmit={saveGoals}
-                />
-              </section>
-            ) : null}
 
             <div className="mb-5 grid grid-cols-2 gap-2">
               {(Object.keys(mealLabels) as MealType[]).map((type) => {
@@ -1204,6 +1174,18 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            )}
+
+            {!profileNeedsSetup && (
+              <AccordionSection title="Profil & Ziel anpassen" icon={<Settings2 />}>
+                <ProfileSetupForm
+                  goalForm={goalForm}
+                  setGoalForm={setGoalForm}
+                  calculatedPreview={calculatedPreview}
+                  saving={saving}
+                  onSubmit={saveGoals}
+                />
+              </AccordionSection>
             )}
           </>
         ) : null}

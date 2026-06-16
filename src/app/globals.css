@@ -294,15 +294,6 @@ select.field-inv {
   }
 }
 
-.modal-content {
-  animation: modal-fade-in 0.3s ease both;
-}
-
-@keyframes modal-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

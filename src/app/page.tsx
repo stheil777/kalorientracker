@@ -823,7 +823,7 @@ export default function Home() {
             <p className="kicker mb-4">Von Jen, für dich.</p>
             <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Iss was dir gut tut.</h1>
             <p className="mt-5 max-w-sm text-[1.05rem] leading-8 text-[var(--espresso-50)]">
-              Dein täglicher Begleiter für bewusstes Essen — ohne Stress, mit Leichtigkeit.
+              Dein täglicher Begleiter für bewusstes Essen — mit Leichtigkeit.
             </p>
           </div>
 

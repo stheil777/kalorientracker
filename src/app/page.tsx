@@ -1251,23 +1251,21 @@ export default function Home() {
       </div>
 
       {profileModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--ivory)" }}>
-          <div style={{ background: "var(--coral)", minHeight: "120px" }}>
-            <div className="mx-auto max-w-md px-4 pb-6 pt-12">
-              <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
-                  Deine Basis.
-                </h2>
-                <button
-                  type="button"
-                  aria-label="Profil schließen"
-                  onClick={() => setProfileModalOpen(false)}
-                  className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
+          <div className="mx-auto max-w-md px-4 pb-6 pt-12">
+            <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
+                Deine Basis.
+              </h2>
+              <button
+                type="button"
+                aria-label="Profil schließen"
+                onClick={() => setProfileModalOpen(false)}
+                className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
           </div>
           <div className="mx-auto max-w-md px-4 pb-32 pt-6">
@@ -1277,6 +1275,7 @@ export default function Home() {
               calculatedPreview={calculatedPreview}
               saving={saving}
               onSubmit={saveGoals}
+              inverted
             />
           </div>
         </div>

@@ -1525,8 +1525,8 @@ function ProfileSetupForm({
 }) {
   const inv = inverted;
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div className="grid grid-cols-2 gap-4">
         <Input inverted={inv} label="Gewicht kg" type="number" value={goalForm.current_weight} onChange={(value) => setGoalForm({ ...goalForm, current_weight: value })} required />
         <Input inverted={inv} label="Größe cm" type="number" value={goalForm.height_cm} onChange={(value) => setGoalForm({ ...goalForm, height_cm: value })} required />
         <Input inverted={inv} label="Alter" type="number" value={goalForm.age} onChange={(value) => setGoalForm({ ...goalForm, age: value })} required />
@@ -1537,8 +1537,8 @@ function ProfileSetupForm({
       <SelectField inverted={inv} label="Ernährungsform" value={goalForm.diet_type} onChange={(value) => setGoalForm({ ...goalForm, diet_type: value as DietType })} options={(Object.keys(dietLabels) as DietType[]).map((value) => ({ value, label: dietLabels[value] }))} />
 
       {calculatedPreview ? (
-        <div className={`rounded-lg p-3 ${inv ? "bg-white/15" : "soft-card"}`}>
-          <div className="mb-3 flex items-center gap-2">
+        <div className={`rounded-lg p-4 ${inv ? "bg-white/15" : "soft-card"}`}>
+          <div className="mb-4 flex items-center gap-2">
             <Calculator className={`h-4 w-4 ${inv ? "text-white" : "text-[var(--coral)]"}`} />
             <p className={`text-sm font-black ${inv ? "text-white" : "text-[var(--espresso)]"}`}>Berechneter Startpunkt</p>
           </div>
@@ -1548,22 +1548,22 @@ function ProfileSetupForm({
             <PreviewMetric inverted={inv} label="Carbs" value={`${calculatedPreview.carbs} g`} />
             <PreviewMetric inverted={inv} label="Fett" value={`${calculatedPreview.fat} g`} />
           </div>
-          <p className={`mt-3 text-xs leading-5 ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>
+          <p className={`mt-4 text-xs leading-5 ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>
             Diese Werte sind ein persönlicher Richtwert — kein starres Ziel.
           </p>
         </div>
       ) : null}
 
-      <div className="pt-2">
-        <p className={`kicker mb-3 ${inv ? "text-white" : ""}`}>Persönliches Profil</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+      <div className="pt-4">
+        <p className="kicker mb-4" style={inv ? { color: "white" } : undefined}>Persönliches Profil</p>
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
             <Input inverted={inv} label="Wunschgewicht kg" type="number" value={goalForm.target_weight} onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })} />
             <SelectField inverted={inv} label="Training / Woche" value={goalForm.training_frequency} onChange={(value) => setGoalForm({ ...goalForm, training_frequency: value })}
               options={[{ value: "0", label: "Kein Training" }, { value: "1", label: "1 Tag" }, { value: "2", label: "2 Tage" }, { value: "3", label: "3 Tage" }, { value: "4", label: "4 Tage" }, { value: "5", label: "5 Tage" }, { value: "6", label: "6 Tage" }, { value: "7", label: "Täglich" }]}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <Input inverted={inv} label="Schlafziel Stunden" type="number" step="0.5" value={goalForm.sleep_goal_hours} onChange={(value) => setGoalForm({ ...goalForm, sleep_goal_hours: value })} />
             <SelectField inverted={inv} label="Alkohol" value={goalForm.alcohol_frequency} onChange={(value) => setGoalForm({ ...goalForm, alcohol_frequency: value })}
               options={[{ value: "nie", label: "Nie" }, { value: "selten", label: "Selten" }, { value: "1-2x", label: "1-2x pro Woche" }, { value: "oefter", label: "Öfter" }]}
@@ -1576,9 +1576,11 @@ function ProfileSetupForm({
         </div>
       </div>
 
-      <button className={`flex h-14 w-full items-center justify-center rounded-md text-base font-black pressable ${inv ? "bg-white text-[var(--coral)]" : "coral-button"}`}>
-        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Profil speichern"}
-      </button>
+      <div className="pt-2">
+        <button className={`flex h-14 w-full items-center justify-center rounded-md text-base font-black pressable ${inv ? "bg-white text-[var(--coral)]" : "coral-button"}`}>
+          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Profil speichern"}
+        </button>
+      </div>
     </form>
   );
 }

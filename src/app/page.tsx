@@ -1065,16 +1065,16 @@ export default function Home() {
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
-                    <p className={`text-sm font-black ${isActive ? "text-white/80" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
+                    <p className={`text-sm font-black ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
                     <p className={`serif mt-1 text-2xl leading-none ${isActive ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
                       {hasEntries ? typeKcal : "+"}
                     </p>
                     {hasEntries ? (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/70" : "text-[var(--espresso-50)]"}`}>
-                        kcal <span className={isActive ? "text-white/50" : "text-[var(--espresso-50)]"}>/ {targetKcal}</span>
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>
+                        kcal <span className={isActive ? "text-white" : "text-[var(--espresso-50)]"}>/ {targetKcal}</span>
                       </p>
                     ) : (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white/60" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
+                      <p className={`mt-0.5 text-xs ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
                     )}
                     <div className="absolute bottom-3 left-3 right-3 h-[5px] rounded-full" style={{ background: isActive ? "rgba(255,255,255,0.22)" : "rgba(52,40,32,0.07)" }}>
                       {pct > 0 && <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "#ffffff" : "var(--coral)" }} />}
@@ -1254,7 +1254,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--ivory)" }}>
           <div style={{ background: "var(--coral)", minHeight: "120px" }}>
             <div className="mx-auto max-w-md px-4 pb-6 pt-12">
-              <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white/70">{formatGermanDate(date)}</p>
+              <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
               <div className="flex items-center justify-between gap-3">
                 <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
                   Deine Basis.
@@ -1540,7 +1540,7 @@ function ProfileSetupForm({
       {calculatedPreview ? (
         <div className={`rounded-lg p-3 ${inv ? "bg-white/15" : "soft-card"}`}>
           <div className="mb-3 flex items-center gap-2">
-            <Calculator className={`h-4 w-4 ${inv ? "text-white/70" : "text-[var(--coral)]"}`} />
+            <Calculator className={`h-4 w-4 ${inv ? "text-white" : "text-[var(--coral)]"}`} />
             <p className={`text-sm font-black ${inv ? "text-white" : "text-[var(--espresso)]"}`}>Berechneter Startpunkt</p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -1549,14 +1549,14 @@ function ProfileSetupForm({
             <PreviewMetric inverted={inv} label="Carbs" value={`${calculatedPreview.carbs} g`} />
             <PreviewMetric inverted={inv} label="Fett" value={`${calculatedPreview.fat} g`} />
           </div>
-          <p className={`mt-3 text-xs leading-5 ${inv ? "text-white/55" : "text-[var(--espresso-50)]"}`}>
-            Formel: Mifflin-St Jeor plus Aktivitätsfaktor. Das ist ein sinnvoller Startwert, kein medizinischer Wert.
+          <p className={`mt-3 text-xs leading-5 ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>
+            Diese Werte sind ein persönlicher Richtwert — kein starres Ziel.
           </p>
         </div>
       ) : null}
 
       <div className="pt-2">
-        <p className={`kicker mb-3 ${inv ? "text-white/60" : ""}`}>Persönliches Profil</p>
+        <p className={`kicker mb-3 ${inv ? "text-white" : ""}`}>Persönliches Profil</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Input inverted={inv} label="Wunschgewicht kg" type="number" value={goalForm.target_weight} onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })} />
@@ -1588,7 +1588,7 @@ function PreviewMetric({ label, value, inverted }: { label: string; value: numbe
   return (
     <div>
       <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
-      <p className={`text-xs font-bold uppercase tracking-[0.06em] ${inverted ? "text-white/60" : "text-[var(--espresso-50)]"}`}>{label}</p>
+      <p className={`text-xs font-bold uppercase tracking-[0.06em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1608,7 +1608,7 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)} className={inverted ? "field-inv" : "field"}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -1634,7 +1634,7 @@ function Input({
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <input value={value} onChange={(event) => { playType(); onChange(event.target.value); }} className={inverted ? "field-inv" : "field"} {...props} />
     </label>
   );
@@ -2016,7 +2016,7 @@ function TextArea({
 }) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <textarea
         value={value}
         onChange={(event) => { playType(); onChange(event.target.value); }}

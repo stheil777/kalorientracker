@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
+import { playBell, playClick, playClose, playDelete, playOpen, playSave, playStepDown, playStepUp, playType } from "@/lib/sounds";
 import { JEN_FOODS } from "@/lib/jen-foods";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type {
@@ -224,6 +225,7 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [authMessage, setAuthMessage] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -240,6 +242,8 @@ export default function Home() {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
   const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
@@ -469,8 +473,10 @@ export default function Home() {
     if (!supabase || !user || !activeProfile) return;
     const existing = favorites.find((f) => f.name === name);
     if (existing) {
+      playDelete();
       await supabase.from("favorite_meals").delete().eq("id", existing.id);
     } else {
+      playBell();
       const g = grams ?? 100;
       const lbl = label ?? `${g} g`;
       const f = g / 100;
@@ -509,6 +515,7 @@ export default function Home() {
     }
     setSaving(true);
     setAuthMessage("");
+    setAuthSuccess("");
 
     const result =
       authMode === "login"
@@ -518,7 +525,7 @@ export default function Home() {
     if (result.error) {
       setAuthMessage(result.error.message);
     } else if (authMode === "signup") {
-      setAuthMessage("Account erstellt. Prüfe ggf. deine E-Mail-Bestätigung.");
+      setAuthSuccess("Wir haben dir eine E-Mail geschickt. Bitte bestätige deine Adresse.");
     }
 
     setSaving(false);
@@ -553,6 +560,7 @@ export default function Home() {
     const { error } = await supabase.from("meal_entries").delete().eq("id", mealId);
     if (error) { setSaveError("Mahlzeit konnte nicht gelöscht werden."); setSaving(false); return; }
     await refreshDay();
+    playDelete();
     setSaving(false);
   }
 
@@ -562,6 +570,7 @@ export default function Home() {
     const { error } = await supabase.from("favorite_meals").delete().eq("id", favoriteId);
     if (error) { setSaveError("Favorit konnte nicht gelöscht werden."); setSaving(false); return; }
     await refreshFavorites();
+    playDelete();
     setSaving(false);
   }
 
@@ -608,6 +617,7 @@ export default function Home() {
       }
     }
 
+    playSave();
     setSaving(false);
     setProfileOpen(false);
     setProfileModalOpen(false);
@@ -647,6 +657,7 @@ export default function Home() {
 
     if (noteError) { setSaveError("Check-In konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
+    playSave();
     setSaving(false);
     setCheckInOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -676,6 +687,7 @@ export default function Home() {
     });
     if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
+    playSave();
     setSaving(false);
     setInlineKey(null);
     setInlineFood(null);
@@ -695,6 +707,7 @@ export default function Home() {
     }).eq("id", mealId);
     if (error) { setSaveError("Konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
+    playSave();
     setSaving(false);
     setInlineKey(null);
     setInlineFood(null);
@@ -710,8 +723,28 @@ export default function Home() {
     });
     if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
+    playSave();
     setSaving(false);
     setInlineKey(null);
+  }
+
+  async function deleteAccount() {
+    if (!supabase || !user) return;
+    setDeleting(true);
+    const uid = user.id;
+    const results = await Promise.all([
+      supabase.from("meal_entries").delete().eq("user_id", uid),
+      supabase.from("daily_notes").delete().eq("user_id", uid),
+      supabase.from("favorite_meals").delete().eq("user_id", uid),
+      supabase.from("profiles").delete().eq("user_id", uid),
+    ]);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      setSaveError("Konto konnte nicht gelöscht werden: " + failed.error.message);
+      setDeleting(false);
+      return;
+    }
+    await supabase.auth.signOut();
   }
 
   if (!hasSupabaseConfig) {
@@ -772,7 +805,7 @@ export default function Home() {
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => { setAuthMode(mode); setAuthMessage(""); setResetMode("idle"); }}
+                  onClick={() => { setAuthMode(mode); setAuthMessage(""); setAuthSuccess(""); setResetMode("idle"); }}
                   className={`pressable rounded-sm px-4 py-3 text-sm font-extrabold ${
                     authMode === mode
                       ? "bg-white text-[var(--coral-dark)] shadow-[0_10px_24px_rgba(52,40,32,0.06)]"
@@ -806,8 +839,13 @@ export default function Home() {
               </label>
             )}
             {authMessage ? (
-              <p className="rounded-md bg-[rgba(230,182,74,0.14)] p-3 text-sm leading-6 text-[var(--espresso-70)]">
+              <p className="rounded-md bg-[rgba(220,60,40,0.10)] p-3 text-sm leading-6 text-[#b83030]">
                 {authMessage}
+              </p>
+            ) : null}
+            {authSuccess ? (
+              <p className="rounded-md bg-[rgba(80,180,120,0.12)] p-3 text-sm leading-6 text-[#2a7a50]">
+                {authSuccess}
               </p>
             ) : null}
             {resetMode === "sent" ? (
@@ -836,18 +874,19 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <div className="mx-auto max-w-md px-4 pb-28 pt-12">
+      <div className="mx-auto max-w-md px-4 pt-12" style={{ paddingBottom: "max(4rem, env(safe-area-inset-bottom))" }}>
         <header className="reveal-in mb-6">
           <p className="kicker mb-2">{formatGermanDate(date)}</p>
           <div className="flex items-center justify-between gap-3">
             <h1 className="serif min-w-0 text-[2.55rem] leading-none text-[var(--espresso)]">
-              Hey <span className="italic text-[var(--coral)]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
+              Hey{" "}<span className="italic text-[var(--coral)] -ml-[0.08em]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
             </h1>
             {activeProfile && (
               <button
                 type="button"
+                aria-label="Profil bearbeiten"
                 onClick={() => { setGoalForm(goalsFromProfile(activeProfile)); setProfileModalOpen(true); }}
-                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--coral)] shadow-sm"
+                className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--coral)] shadow-sm"
               >
                 <Settings2 className="h-5 w-5" />
               </button>
@@ -921,7 +960,7 @@ export default function Home() {
                   <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
                   <input
                     value={dailyNote.cravings}
-                    onChange={(e) => setDailyNote({ ...dailyNote, cravings: e.target.value })}
+                    onChange={(e) => { playType(); setDailyNote({ ...dailyNote, cravings: e.target.value }); }}
                     className="field"
                     placeholder="Worauf hattest du heute Lust?"
                   />
@@ -930,7 +969,7 @@ export default function Home() {
                   <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
                   <textarea
                     value={dailyNote.notes}
-                    onChange={(e) => setDailyNote({ ...dailyNote, notes: e.target.value })}
+                    onChange={(e) => { playType(); setDailyNote({ ...dailyNote, notes: e.target.value }); }}
                     rows={2}
                     className="field h-auto min-h-20 py-3"
                     placeholder="Besonderheiten, Beobachtungen..."
@@ -984,7 +1023,7 @@ export default function Home() {
                     key={type}
                     type="button"
                     onClick={() => { setActiveMealType(isActive ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
-                    className="pressable relative flex flex-col items-start overflow-hidden rounded-xl px-4 pb-10 pt-4 text-left transition-colors"
+                    className="pressable relative flex flex-col items-start overflow-hidden rounded-lg px-4 pb-10 pt-4 text-left transition-colors"
                     style={
                       isActive
                         ? { background: "var(--coral)", border: "1px solid var(--coral)", boxShadow: "0 8px 24px rgba(240,107,93,0.28)" }
@@ -1039,7 +1078,7 @@ export default function Home() {
                                 <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
                                 <p className="text-xs text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
                               </button>
-                              <button type="button" onClick={() => deleteFavorite(fav.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
+                              <button type="button" aria-label="Favorit löschen" onClick={() => deleteFavorite(fav.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -1092,7 +1131,6 @@ export default function Home() {
                 </AccordionSection>
 
                 <div className="app-card relative z-10 p-4">
-                  <p className="kicker mb-3">Suche</p>
                   <FoodSearch
                     query={foodQuery}
                     jenFoods={jenMatches}
@@ -1100,6 +1138,7 @@ export default function Home() {
                     searching={foodSearching}
                     showResults={showDropdown}
                     onQueryChange={(value) => {
+                      playType();
                       setFoodQuery(value);
                       setInlineKey(null);
                       if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
@@ -1217,6 +1256,36 @@ export default function Home() {
         >
           Ausloggen
         </button>
+        <div className="mt-6">
+          {!deleteConfirm ? (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="text-xs text-[var(--espresso-28)] underline underline-offset-2"
+            >
+              Konto löschen
+            </button>
+          ) : (
+            <div className="mx-auto max-w-xs rounded-xl border border-red-200 bg-red-50 p-4 text-left">
+              <p className="text-sm font-bold text-red-700">Konto wirklich löschen?</p>
+              <p className="mt-1 text-xs text-red-500">Alle deine Daten, Einträge und Favoriten werden unwiderruflich gelöscht.</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-xs font-bold text-[var(--espresso-50)]"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={deleteAccount}
+                  disabled={deleting}
+                  className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white disabled:opacity-60"
+                >
+                  {deleting ? "Wird gelöscht…" : "Ja, löschen"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </footer>
     </main>
   );
@@ -1245,6 +1314,7 @@ function AccordionSection({
   defaultOpen = false,
   open: controlledOpen,
   onOpenChange,
+  badge,
 }: {
   title: string;
   icon: ReactNode;
@@ -1252,11 +1322,13 @@ function AccordionSection({
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  badge?: ReactNode;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
 
   function toggle() {
+    if (open) playClose(); else playOpen();
     if (onOpenChange) onOpenChange(!open);
     else setInternalOpen((o) => !o);
   }
@@ -1273,6 +1345,7 @@ function AccordionSection({
             {icon}
           </span>
           <span className="serif text-2xl text-[var(--espresso)]">{title}</span>
+          {badge}
         </div>
         <ChevronDown
           className={`h-5 w-5 text-[var(--espresso-50)] transition-transform duration-300 ease-in-out ${open ? "rotate-180" : ""}`}
@@ -1536,7 +1609,7 @@ function Input({
   return (
     <label className="block">
       <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} className={inverted ? "field-inv" : "field"} {...props} />
+      <input value={value} onChange={(event) => { playType(); onChange(event.target.value); }} className={inverted ? "field-inv" : "field"} {...props} />
     </label>
   );
 }
@@ -1665,20 +1738,20 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
           <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
           <button type="button" onClick={() => setUnit("g")} className="text-xs font-bold text-[var(--coral)]">in Gramm →</button>
         </div>
-        <div className="soft-card flex items-center justify-between rounded-md p-1">
+        <div className="soft-card flex items-center justify-between rounded-md p-2">
           <button
             type="button"
-            onClick={() => { const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
-            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-          >-</button>
+            onClick={() => { playStepDown(); const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
+          >−</button>
           <div className="text-center">
             <span className="serif text-4xl text-[var(--espresso)]">{fmt(stueck)}</span>
             <span className="ml-1.5 text-base text-[var(--espresso-50)]">Stück</span>
           </div>
           <button
             type="button"
-            onClick={() => { const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
-            className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+            onClick={() => { playStepUp(); const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
           >+</button>
         </div>
       </div>
@@ -1691,20 +1764,20 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
         <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
         {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-xs font-bold text-[var(--coral)]">in Stück →</button>}
       </div>
-      <div className="soft-card flex items-center justify-between rounded-md p-1">
+      <div className="soft-card flex items-center justify-between rounded-md p-2">
         <button
           type="button"
-          onClick={() => onChange(amount - 10)}
-          className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-        >-</button>
+          onClick={() => { playStepDown(); onChange(Math.max(0, amount - 10)); }}
+          className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
+        >−</button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
           <span className="ml-1.5 text-base text-[var(--espresso-50)]">g</span>
         </div>
         <button
           type="button"
-          onClick={() => onChange(amount + 10)}
-          className="pressable flex h-14 w-16 items-center justify-center rounded-md text-3xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+          onClick={() => { playStepUp(); onChange(amount + 10); }}
+          className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
         >+</button>
       </div>
     </div>
@@ -1755,13 +1828,12 @@ function FoodSearch({
   return (
     <div ref={containerRef} className="relative">
       <label className="block">
-        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Lebensmittel</span>
         <div className="relative">
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onFocus={onFocus}
-            placeholder="Tippen zum Suchen..."
+            placeholder="Lebensmittel finden"
             className="field pr-16"
             required
           />
@@ -1913,7 +1985,7 @@ function TextArea({
       <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white/70" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <textarea
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => { playType(); onChange(event.target.value); }}
         rows={2}
         className={`${inverted ? "field-inv" : "field"} h-auto min-h-16 py-3 text-sm`}
         placeholder={placeholder}
@@ -1931,14 +2003,14 @@ function useAnimatedNumber(target: number) {
     if (prevRef.current === target) return;
     const start = prevRef.current;
     const diff = target - start;
-    const duration = 500;
+    const duration = 1400;
     const startTime = performance.now();
 
     cancelAnimationFrame(rafRef.current);
     function tick(now: number) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const eased = 1 - Math.pow(1 - progress, 4);
       setDisplayed(Math.round(start + diff * eased));
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(tick);

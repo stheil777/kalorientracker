@@ -8,7 +8,7 @@
   --gold: #e6b64a;
   --espresso: #342820;
   --espresso-70: rgba(52, 40, 32, 0.78);
-  --espresso-50: rgba(52, 40, 32, 0.58);
+  --espresso-50: rgba(52, 40, 32, 0.72);
   --espresso-28: rgba(52, 40, 32, 0.28);
   --espresso-14: rgba(52, 40, 32, 0.14);
   --espresso-08: rgba(52, 40, 32, 0.08);
@@ -73,7 +73,8 @@ button:disabled {
 }
 
 .app-shell {
-  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
   color: var(--espresso);
 }
 
@@ -149,7 +150,7 @@ button:disabled {
   padding: 0 1rem;
   color: var(--espresso);
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 650; /* Manrope Variable Font — 650 supported */
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
@@ -183,7 +184,7 @@ input.field::placeholder {
   padding: 0 1rem;
   color: white;
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 650; /* Manrope Variable Font — 650 supported */
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
@@ -204,6 +205,15 @@ input.field-inv::placeholder {
   color: rgba(255, 255, 255, 0.4);
   font-weight: 400;
 }
+select.field-inv {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px 16px;
+  padding-right: 2.5rem;
+}
+
 .field-inv option {
   color: var(--espresso);
   background: white;

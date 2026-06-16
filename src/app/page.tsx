@@ -820,10 +820,10 @@ export default function Home() {
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-[var(--coral)] text-white shadow-[0_18px_36px_rgba(240,107,93,0.24)]">
               <Flame className="h-7 w-7" />
             </div>
-            <p className="kicker mb-4">Dein Food-Log</p>
-            <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Kalorien lesbar machen.</h1>
+            <p className="kicker mb-4">Von Jen, für dich.</p>
+            <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Iss was dir gut tut.</h1>
             <p className="mt-5 max-w-sm text-[1.05rem] leading-8 text-[var(--espresso-50)]">
-              Ein ruhiger Food-Log mit Makros, Favoriten und Tagesnotizen. Schnell genug für jeden Tag.
+              Dein täglicher Begleiter für bewusstes Essen — ohne Stress, mit Leichtigkeit.
             </p>
           </div>
 

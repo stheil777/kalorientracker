@@ -294,52 +294,34 @@ select.field-inv {
   }
 }
 
-@keyframes modal-slide-up {
+@keyframes modal-in {
   from {
-    transform: translateY(100%);
-    opacity: 0.6;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes modal-slide-down {
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateY(100%);
     opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes modal-backdrop-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes modal-backdrop-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+@keyframes modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 .modal-enter {
-  animation: modal-slide-up 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: modal-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .modal-exit {
-  animation: modal-slide-down 0.32s cubic-bezier(0.4, 0, 0.8, 0) both;
-}
-
-.modal-backdrop-enter {
-  animation: modal-backdrop-in 0.3s ease both;
-}
-
-.modal-backdrop-exit {
-  animation: modal-backdrop-out 0.28s ease both;
+  animation: modal-out 0.24s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

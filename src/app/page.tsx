@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
-import { playBell, playClick, playClose, playDelete, playOpen, playSave, playStepDown, playStepUp, playType } from "@/lib/sounds";
+import { closeSoundContext, playBell, playClick, playClose, playDelete, playOpen, playSave, playStepDown, playStepUp, playType } from "@/lib/sounds";
 import { JEN_FOODS } from "@/lib/jen-foods";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type {
@@ -218,6 +218,13 @@ function calculateTargets(form: typeof blankGoals) {
   return { calories, protein, carbs, fat, tdee };
 }
 
+function getTimeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 11) return "Guten Morgen.";
+  if (h < 18) return "Jetzt tracken.";
+  return "Guten Abend.";
+}
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
@@ -255,6 +262,9 @@ export default function Home() {
   const [foodSearching, setFoodSearching] = useState(false);
   const [showFoodResults, setShowFoodResults] = useState(false);
   const [foodFocused, setFoodFocused] = useState(false);
+  const [checkInSaved, setCheckInSaved] = useState(false);
+  const [toast, setToast] = useState<{ id: number; msg: string } | null>(null);
+  const toastIdRef = useRef(0);
 
   const jenMatches = useMemo(() => {
     if (!foodFocused) return [];
@@ -323,6 +333,10 @@ export default function Home() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    return () => { closeSoundContext(); };
   }, []);
 
   useEffect(() => {
@@ -658,9 +672,19 @@ export default function Home() {
     if (noteError) { setSaveError("Check-In konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     playSave();
+    setCheckInSaved(true);
+    setTimeout(() => setCheckInSaved(false), 2200);
+    showToast("Check-In gespeichert");
     setSaving(false);
     setCheckInOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showToast(msg: string) {
+    toastIdRef.current += 1;
+    const id = toastIdRef.current;
+    setToast({ id, msg });
+    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2700);
   }
 
   function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }, initialGrams?: number) {
@@ -675,6 +699,7 @@ export default function Home() {
 
   async function inlineAddMeal() {
     if (!supabase || !user || !activeProfile || !inlineFood || !activeMealType) return;
+    const addedName = inlineFood.name;
     setSaving(true);
     const f = inlineGrams / 100;
     const { error } = await supabase.from("meal_entries").insert({
@@ -688,6 +713,7 @@ export default function Home() {
     if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     playSave();
+    showToast((addedName.length > 22 ? addedName.slice(0, 22) + "…" : addedName) + " hinzugefügt");
     setSaving(false);
     setInlineKey(null);
     setInlineFood(null);
@@ -708,6 +734,7 @@ export default function Home() {
     if (error) { setSaveError("Konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     playSave();
+    showToast("Menge aktualisiert");
     setSaving(false);
     setInlineKey(null);
     setInlineFood(null);
@@ -724,6 +751,7 @@ export default function Home() {
     if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
     await refreshDay();
     playSave();
+    showToast((fav.name.length > 22 ? fav.name.slice(0, 22) + "…" : fav.name) + " hinzugefügt");
     setSaving(false);
     setInlineKey(null);
   }
@@ -892,7 +920,7 @@ export default function Home() {
               </button>
             )}
           </div>
-          <p className="mt-2 text-base text-[var(--espresso-50)]">Jetzt tracken.</p>
+          <p className="mt-2 text-base text-[var(--espresso-50)]">{getTimeGreeting()}</p>
         </header>
 
         {saveError && (
@@ -975,8 +1003,8 @@ export default function Home() {
                     placeholder="Besonderheiten, Beobachtungen..."
                   />
                 </label>
-                <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
-                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Check-In speichern"}
+                <button className={`flex h-14 w-full items-center justify-center rounded-md text-base font-black transition-all duration-300 ${checkInSaved ? "bg-[#4a9e6f] text-white shadow-[0_8px_20px_rgba(74,158,111,0.22)]" : "coral-button"}`}>
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : checkInSaved ? "✓ Gespeichert" : "Check-In speichern"}
                 </button>
               </form>
             </AccordionSection>
@@ -985,7 +1013,7 @@ export default function Home() {
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="kicker mb-2">Kalorien übrig</p>
-                  <p className="serif text-[4.85rem] leading-none text-[var(--coral)]">
+                  <p className="serif nums text-[4.85rem] leading-none text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (
@@ -994,7 +1022,7 @@ export default function Home() {
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
                   <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
-                  <p className="serif text-2xl text-[var(--espresso)]">{totals.calories}</p>
+                  <p className="serif nums text-2xl text-[var(--espresso)]">{totals.calories}</p>
                   <p className="text-xs text-[var(--espresso-50)]">kcal</p>
                 </div>
               </div>
@@ -1010,7 +1038,7 @@ export default function Home() {
               </div>
             </section>
 
-            <div className="mb-5 grid grid-cols-2 gap-2">
+            <div className="mb-5 grid grid-cols-2 gap-3">
               {(Object.keys(mealLabels) as MealType[]).map((type) => {
                 const typeMeals = mealsByType[type] ?? [];
                 const hasEntries = typeMeals.length > 0;
@@ -1060,7 +1088,10 @@ export default function Home() {
               <div className="mb-5 space-y-2">
                 <AccordionSection title="Meine Favoriten" icon={<Star />}>
                   {favorites.length === 0 ? (
-                    <p className="text-sm text-[var(--espresso-50)]">Noch keine Favoriten gespeichert.</p>
+                    <div className="soft-card flex flex-col items-center gap-2 px-4 py-8 text-center">
+                      <span className="text-lg tracking-[0.3em] text-[var(--espresso-28)]">· · ·</span>
+                      <p className="text-sm leading-6 text-[var(--espresso-50)]">Noch keine Favoriten. Tippe bei einem Lebensmittel auf den Stern ★, um es hier zu speichern.</p>
+                    </div>
                   ) : (
                     <div className="divide-y divide-[var(--espresso-14)]">
                       {favorites.map((fav) => {
@@ -1112,7 +1143,7 @@ export default function Home() {
                               </div>
                               <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                             </button>
-                            <button type="button" onClick={() => { const open = inlineKey === `jen:${food.name}`; toggleFavorite(food.name, food.per100g, open ? inlineGrams : undefined, open ? inlineLabel : undefined); }} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
+                            <button type="button" aria-label="Als Favorit speichern" onClick={() => { const open = inlineKey === `jen:${food.name}`; toggleFavorite(food.name, food.per100g, open ? inlineGrams : undefined, open ? inlineLabel : undefined); }} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
                               <Star className={`h-4 w-4 transition-colors ${favNames.has(food.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                             </button>
                           </div>
@@ -1153,7 +1184,7 @@ export default function Home() {
                     <div className="mt-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <p className="truncate text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
-                        <button type="button" onClick={() => toggleFavorite(inlineFood.name, inlineFood.per100g, inlineGrams, inlineLabel)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
+                        <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(inlineFood.name, inlineFood.per100g, inlineGrams, inlineLabel)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
                           <Star className={`h-4 w-4 transition-colors ${favNames.has(inlineFood.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                         </button>
                       </div>
@@ -1166,9 +1197,9 @@ export default function Home() {
                 </div>
 
                 {(mealsByType[activeMealType] ?? []).length > 0 && (
-                  <div className="overflow-hidden rounded-xl" style={{ background: "var(--coral)" }}>
-                    <p className="kicker px-4 pb-2 pt-4 text-white/70">Heute {mealLabels[activeMealType]}</p>
-                    <div className="divide-y divide-white/15">
+                  <div className="overflow-hidden rounded-lg" style={{ background: "var(--ivory)", borderLeft: "4px solid var(--coral)", border: "1px solid rgba(217,164,65,0.18)", borderLeftWidth: "4px", borderLeftColor: "var(--coral)" }}>
+                    <p className="kicker px-4 pb-2 pt-4 text-[var(--espresso-50)]">Heute {mealLabels[activeMealType]}</p>
+                    <div className="divide-y divide-[var(--espresso-14)]">
                       {(mealsByType[activeMealType] ?? []).map((meal) => {
                         const editKey = `edit:${meal.id}`;
                         const isEditing = inlineKey === editKey;
@@ -1181,20 +1212,20 @@ export default function Home() {
                             <div className="flex items-center gap-2 px-4 py-3">
                               <button type="button" onClick={() => openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                                 <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-black text-white">{meal.food_name}</p>
-                                  <p className="text-xs text-white/65">{meal.amount || "—"}</p>
+                                  <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
+                                  <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
-                                  <p className="serif text-xl text-white">{meal.calories}</p>
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-white/25 text-white/70">
+                                  <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
                                     <Settings2 className="h-3.5 w-3.5" />
                                   </div>
                                 </div>
                               </button>
-                              <button type="button" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center">
-                                <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-white text-white" : "text-white/40"}`} />
+                              <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
+                                <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                               </button>
-                              <button type="button" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-white/25 text-white/70">
+                              <button type="button" aria-label="Mahlzeit löschen" onClick={() => deleteMeal(meal.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -1220,23 +1251,27 @@ export default function Home() {
       </div>
 
       {profileModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
-          <div className="mx-auto max-w-md px-4 pb-32 pt-12">
-            <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white/60">{formatGermanDate(date)}</p>
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
-                Deine Basis.
-              </h2>
-              <button
-                type="button"
-                onClick={() => setProfileModalOpen(false)}
-                className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--ivory)" }}>
+          <div style={{ background: "var(--coral)", minHeight: "120px" }}>
+            <div className="mx-auto max-w-md px-4 pb-6 pt-12">
+              <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white/70">{formatGermanDate(date)}</p>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
+                  Deine Basis.
+                </h2>
+                <button
+                  type="button"
+                  aria-label="Profil schließen"
+                  onClick={() => setProfileModalOpen(false)}
+                  className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
+          </div>
+          <div className="mx-auto max-w-md px-4 pb-32 pt-6">
             <ProfileSetupForm
-              inverted
               goalForm={goalForm}
               setGoalForm={setGoalForm}
               calculatedPreview={calculatedPreview}
@@ -1246,6 +1281,8 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {toast && <div key={toast.id} className="toast">✓ {toast.msg}</div>}
 
       <footer className="pb-12 pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
@@ -1454,7 +1491,7 @@ function ScoreStepper({
           <button
             type="button"
             onClick={() => onChange(String(Math.max(1, score - 1)))}
-            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+            className="pressable flex h-11 w-11 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
           >
             -
           </button>
@@ -1462,23 +1499,12 @@ function ScoreStepper({
           <button
             type="button"
             onClick={() => onChange(String(Math.min(5, score + 1)))}
-            className="pressable flex h-9 w-9 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
+            className="pressable flex h-11 w-11 items-center justify-center rounded-md text-xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
           >
             +
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SectionTitle({ title, icon }: { title: string; icon: ReactNode }) {
-  return (
-    <div className="mb-4 flex items-center gap-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-[rgba(240,107,93,0.12)] text-[var(--coral)]">
-        {icon}
-      </span>
-      <h2 className="serif text-2xl text-[var(--espresso)]">{title}</h2>
     </div>
   );
 }
@@ -1562,7 +1588,7 @@ function PreviewMetric({ label, value, inverted }: { label: string; value: numbe
   return (
     <div>
       <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
-      <p className={`text-[0.68rem] font-bold uppercase tracking-[0.06em] ${inverted ? "text-white/60" : "text-[var(--espresso-50)]"}`}>{label}</p>
+      <p className={`text-xs font-bold uppercase tracking-[0.06em] ${inverted ? "text-white/60" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1702,10 +1728,21 @@ function ToggleRow({ label, checked, onChange, inverted }: { label: string; chec
 }
 
 function Progress({ current, goal }: { current: number; goal: number }) {
-  const width = Math.min((current / goal) * 100, 100);
+  const pct = Math.min((current / goal) * 100, 100);
+  const done = pct >= 100;
   return (
-    <div className="h-3 overflow-hidden rounded-full bg-[rgba(52,40,32,0.08)]">
-      <div className="progress-fill h-full rounded-full bg-[var(--coral)]" style={{ width: `${width}%` }} />
+    <div
+      role="progressbar"
+      aria-valuenow={current}
+      aria-valuemin={0}
+      aria-valuemax={goal}
+      aria-label="Kalorien heute"
+      className="h-3 overflow-hidden rounded-full bg-[rgba(52,40,32,0.08)]"
+    >
+      <div
+        className={`progress-fill h-full rounded-full transition-colors duration-700 ${done ? "bg-[#4a9e6f]" : "bg-[var(--coral)]"}`}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -1720,7 +1757,7 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   return (
     <div className="soft-card p-3">
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
-      <p className="serif mt-2 text-2xl text-[var(--espresso)]">{fmtG(remaining)} g</p>
+      <p className="serif nums mt-2 text-2xl text-[var(--espresso)]">{fmtG(remaining)} g</p>
       <p className="text-xs text-[var(--espresso-50)]">von {goal} g</p>
     </div>
   );
@@ -1742,7 +1779,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
           <button
             type="button"
             onClick={() => { playStepDown(); const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
-            className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
+            className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
           >−</button>
           <div className="text-center">
             <span className="serif text-4xl text-[var(--espresso)]">{fmt(stueck)}</span>
@@ -1751,7 +1788,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
           <button
             type="button"
             onClick={() => { playStepUp(); const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
-            className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
+            className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
           >+</button>
         </div>
       </div>
@@ -1768,7 +1805,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
         <button
           type="button"
           onClick={() => { playStepDown(); onChange(Math.max(0, amount - 10)); }}
-          className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
+          className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
         >−</button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
@@ -1777,7 +1814,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
         <button
           type="button"
           onClick={() => { playStepUp(); onChange(amount + 10); }}
-          className="pressable flex size-24 items-center justify-center rounded-2xl bg-white text-6xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
+          className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
         >+</button>
       </div>
     </div>
@@ -1839,7 +1876,7 @@ function FoodSearch({
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[var(--espresso-50)]">
             {query ? (
-              <button type="button" onClick={() => onQueryChange("")}>
+              <button type="button" aria-label="Suche löschen" onClick={() => onQueryChange("")} className="flex h-8 w-8 items-center justify-center p-2">
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
               </button>
             ) : null}
@@ -1912,17 +1949,14 @@ function FoodItem({ food, onSelect, onFavorite, isFavorite }: { food: FoodResult
       </button>
       <button
         type="button"
+        aria-label="Als Favorit speichern"
         onClick={() => onFavorite(food)}
-        className="pressable flex w-10 shrink-0 items-center justify-center border-l border-[var(--espresso-08)] hover:bg-[rgba(240,107,93,0.05)]"
+        className="pressable flex w-11 shrink-0 items-center justify-center border-l border-[var(--espresso-08)] hover:bg-[rgba(240,107,93,0.05)]"
       >
         <Star className={`h-4 w-4 transition-colors ${isFavorite ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
       </button>
     </div>
   );
-}
-
-function Empty({ text }: { text: string }) {
-  return <p className="soft-card p-4 text-sm leading-6 text-[var(--espresso-50)]">{text}</p>;
 }
 
 function WaterStatus({ water }: { water: string }) {

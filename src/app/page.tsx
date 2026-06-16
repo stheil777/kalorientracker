@@ -1285,43 +1285,41 @@ export default function Home() {
 
       <footer className="pb-12 pt-2 text-center">
         <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
-        <hr className="mx-auto mt-6 w-16 border-[var(--espresso-14)]" />
-        <button
-          onClick={() => supabase?.auth.signOut()}
-          className="mt-4 text-xs text-[var(--espresso-28)]"
-        >
-          Ausloggen
-        </button>
-        <div className="mt-6">
-          {!deleteConfirm ? (
-            <button
-              onClick={() => setDeleteConfirm(true)}
-              className="text-xs text-[var(--espresso-28)] underline underline-offset-2"
-            >
-              Konto löschen
-            </button>
-          ) : (
-            <div className="mx-auto max-w-xs rounded-xl border border-red-200 bg-red-50 p-4 text-left">
-              <p className="text-sm font-bold text-red-700">Konto wirklich löschen?</p>
-              <p className="mt-1 text-xs text-red-500">Alle deine Daten, Einträge und Favoriten werden unwiderruflich gelöscht.</p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => setDeleteConfirm(false)}
-                  className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-xs font-bold text-[var(--espresso-50)]"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  onClick={deleteAccount}
-                  disabled={deleting}
-                  className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white disabled:opacity-60"
-                >
-                  {deleting ? "Wird gelöscht…" : "Ja, löschen"}
-                </button>
-              </div>
-            </div>
-          )}
+        <div className="mt-8 flex items-center justify-center gap-5">
+          <button
+            onClick={() => supabase?.auth.signOut()}
+            className="text-xs text-[var(--espresso-28)]"
+          >
+            Ausloggen
+          </button>
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="text-xs text-[var(--espresso-28)] underline underline-offset-2"
+          >
+            Konto löschen
+          </button>
         </div>
+        {deleteConfirm && (
+          <div className="mx-auto mt-4 max-w-xs rounded-xl border border-red-200 bg-red-50 p-4 text-left">
+            <p className="text-sm font-bold text-red-700">Konto wirklich löschen?</p>
+            <p className="mt-1 text-xs text-red-500">Alle deine Daten, Einträge und Favoriten werden unwiderruflich gelöscht.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-xs font-bold text-[var(--espresso-50)]"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={deleteAccount}
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white disabled:opacity-60"
+              >
+                {deleting ? "Wird gelöscht…" : "Ja, löschen"}
+              </button>
+            </div>
+          </div>
+        )}
       </footer>
     </main>
   );

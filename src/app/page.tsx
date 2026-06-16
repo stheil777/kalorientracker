@@ -1284,7 +1284,7 @@ export default function Home() {
       {toast && <div key={toast.id} className="toast">✓ {toast.msg}</div>}
 
       <footer className="pb-12 pt-2 text-center">
-        <p className="serif text-lg italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
+        <p className="serif text-2xl italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
         <div className="mt-8 flex items-center justify-center gap-5">
           <button
             onClick={() => supabase?.auth.signOut()}

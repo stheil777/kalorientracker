@@ -70,6 +70,11 @@ function warmTone(freq: number, duration: number, volume: number, delay = 0) {
   } catch { /* silent fail */ }
 }
 
+export function closeSoundContext() {
+  ctx?.close().catch(() => {});
+  ctx = null;
+}
+
 export function playClick() {
   noiseBurst(140, 1.2, 0.04, 0.18);
 }

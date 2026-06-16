@@ -1066,7 +1066,7 @@ export default function Home() {
                       </div>
                     )}
                     <p className={`text-sm font-black ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
-                    <p className={`serif mt-1 text-2xl leading-none ${isActive ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
+                    <p className={`serif mt-1 text-3xl leading-none ${isActive ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
                       {hasEntries ? typeKcal : "+"}
                     </p>
                     {hasEntries ? (

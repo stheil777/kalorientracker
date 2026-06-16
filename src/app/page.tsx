@@ -1756,7 +1756,7 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   return (
     <div className="soft-card p-3">
       <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
-      <p className="serif mt-2 text-3xl leading-none text-[var(--coral)]">{fmtG(remaining)} g</p>
+      <p className="serif mt-2 text-3xl leading-none tracking-[-0.02em] text-[var(--coral)]">{fmtG(remaining)} g</p>
       <p className="text-sm text-[var(--espresso-50)]">von {goal} g</p>
     </div>
   );

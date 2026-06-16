@@ -249,7 +249,6 @@ export default function Home() {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalClosing, setProfileModalClosing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
@@ -635,15 +634,7 @@ export default function Home() {
     playSave();
     setSaving(false);
     setProfileOpen(false);
-    closeProfileModal();
-  }
-
-  function closeProfileModal() {
-    setProfileModalClosing(true);
-    setTimeout(() => {
-      setProfileModalOpen(false);
-      setProfileModalClosing(false);
-    }, 320);
+    setProfileModalOpen(false);
   }
 
   function selectProfile(profile: Profile) {
@@ -1261,7 +1252,7 @@ export default function Home() {
 
       {profileModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
-          <div className={profileModalClosing ? "modal-exit" : "modal-enter"}>
+          <div className="modal-content">
             <div className="mx-auto max-w-md px-4 pb-6 pt-12">
               <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
               <div className="flex items-center justify-between gap-3">
@@ -1271,7 +1262,7 @@ export default function Home() {
                 <button
                   type="button"
                   aria-label="Profil schließen"
-                  onClick={closeProfileModal}
+                  onClick={() => setProfileModalOpen(false)}
                   className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
                 >
                   <X className="h-5 w-5" />

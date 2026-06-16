@@ -1755,7 +1755,7 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   const remaining = Math.max(goal - value, 0);
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold uppercase tracking-[0.04em] text-[var(--espresso-50)]">{label}</p>
+      <p className="text-sm font-bold uppercase tracking-normal text-[var(--espresso-50)]">{label}</p>
       <p className="serif nums mt-2 text-2xl text-[var(--coral)]">{fmtG(remaining)} g</p>
       <p className="text-sm text-[var(--espresso-50)]">von {goal} g</p>
     </div>

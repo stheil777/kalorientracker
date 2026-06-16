@@ -1197,9 +1197,9 @@ export default function Home() {
                 </div>
 
                 {(mealsByType[activeMealType] ?? []).length > 0 && (
-                  <div className="overflow-hidden rounded-lg" style={{ background: "var(--ivory)", borderLeft: "4px solid var(--coral)", border: "1px solid rgba(217,164,65,0.18)", borderLeftWidth: "4px", borderLeftColor: "var(--coral)" }}>
-                    <p className="kicker px-4 pb-2 pt-4 text-[var(--espresso-50)]">Heute {mealLabels[activeMealType]}</p>
-                    <div className="divide-y divide-[var(--espresso-14)]">
+                  <div className="overflow-hidden rounded-lg" style={{ background: "var(--coral)" }}>
+                    <p className="kicker px-4 pb-2 pt-4" style={{ color: "white" }}>Heute {mealLabels[activeMealType]}</p>
+                    <div className="divide-y divide-white/20">
                       {(mealsByType[activeMealType] ?? []).map((meal) => {
                         const editKey = `edit:${meal.id}`;
                         const isEditing = inlineKey === editKey;
@@ -1212,27 +1212,27 @@ export default function Home() {
                             <div className="flex items-center gap-2 px-4 py-3">
                               <button type="button" onClick={() => openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                                 <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-black text-[var(--espresso)]">{meal.food_name}</p>
-                                  <p className="text-xs text-[var(--espresso-50)]">{meal.amount || "—"}</p>
+                                  <p className="truncate text-sm font-black text-white">{meal.food_name}</p>
+                                  <p className="text-xs text-white">{meal.amount || "—"}</p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
-                                  <p className="serif text-xl text-[var(--coral)]">{meal.calories}</p>
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
+                                  <p className="serif text-xl text-white">{meal.calories}</p>
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-white/30 text-white">
                                     <Settings2 className="h-3.5 w-3.5" />
                                   </div>
                                 </div>
                               </button>
                               <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
-                                <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
+                                <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-white text-white" : "text-white"}`} />
                               </button>
-                              <button type="button" aria-label="Mahlzeit löschen" onClick={() => deleteMeal(meal.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-50)]">
+                              <button type="button" aria-label="Mahlzeit löschen" onClick={() => deleteMeal(meal.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-white/30 text-white">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                             {isEditing && (
                               <div className="mx-4 mb-4 rounded-lg bg-white p-4">
                                 <AmountStepper amount={inlineGrams} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
-                                <button type="button" onClick={() => inlineUpdateMeal(meal.id)} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                                <button type="button" onClick={() => inlineUpdateMeal(meal.id)} className="mt-3 flex h-11 w-full items-center justify-center rounded-md bg-[var(--coral)] text-sm font-black text-white">
                                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
                                 </button>
                               </div>

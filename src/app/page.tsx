@@ -1222,10 +1222,10 @@ export default function Home() {
                                   </div>
                                 </div>
                               </button>
-                              <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
-                                <Star className={`h-4 w-4 transition-colors ${isFav ? "fill-white text-white" : "text-white"}`} />
+                              <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(meal.food_name, p100, g, meal.amount ?? `${g} g`)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-white/30 text-white">
+                                <Star className={`h-3.5 w-3.5 transition-colors ${isFav ? "fill-white" : ""}`} />
                               </button>
-                              <button type="button" aria-label="Mahlzeit löschen" onClick={() => deleteMeal(meal.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-white/30 text-white">
+                              <button type="button" aria-label="Mahlzeit löschen" onClick={() => deleteMeal(meal.id)} className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-white/30 text-white">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>

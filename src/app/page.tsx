@@ -1017,13 +1017,13 @@ export default function Home() {
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (
-                    <p className="mt-1 text-xs font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
+                    <p className="mt-1 text-sm font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
                   )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
-                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
+                  <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
                   <p className="serif nums text-2xl text-[var(--espresso)]">{totals.calories}</p>
-                  <p className="text-xs text-[var(--espresso-50)]">kcal</p>
+                  <p className="text-sm text-[var(--espresso-50)]">kcal</p>
                 </div>
               </div>
               <Progress current={totals.calories} goal={activeProfile.calorie_goal} />
@@ -1070,11 +1070,11 @@ export default function Home() {
                       {hasEntries ? typeKcal : "+"}
                     </p>
                     {hasEntries ? (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>
+                      <p className={`mt-0.5 text-sm ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>
                         kcal <span className={isActive ? "text-white" : "text-[var(--espresso-50)]"}>/ {targetKcal}</span>
                       </p>
                     ) : (
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
+                      <p className={`mt-0.5 text-sm ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>Ziel {targetKcal}</p>
                     )}
                     <div className="absolute bottom-3 left-3 right-3 h-[5px] rounded-full" style={{ background: isActive ? "rgba(255,255,255,0.22)" : "rgba(52,40,32,0.07)" }}>
                       {pct > 0 && <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: isActive ? "#ffffff" : "var(--coral)" }} />}
@@ -1107,7 +1107,7 @@ export default function Home() {
                                 openInlineFood(key, { name: fav.name, per100g: p100 }, g);
                               }} className="pressable min-w-0 flex-1 text-left">
                                 <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
-                                <p className="text-xs text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
+                                <p className="text-sm text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
                               </button>
                               <button type="button" aria-label="Favorit löschen" onClick={() => deleteFavorite(fav.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1139,7 +1139,7 @@ export default function Home() {
                             <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-                                <p className="text-xs text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
+                                <p className="text-sm text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
                               </div>
                               <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                             </button>
@@ -1213,7 +1213,7 @@ export default function Home() {
                               <button type="button" onClick={() => openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-sm font-black text-white">{meal.food_name}</p>
-                                  <p className="text-xs text-white">{meal.amount || "—"}</p>
+                                  <p className="text-sm text-white">{meal.amount || "—"}</p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
                                   <p className="serif text-xl text-white">{meal.calories}</p>
@@ -1253,7 +1253,7 @@ export default function Home() {
       {profileModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
           <div className="mx-auto max-w-md px-4 pb-6 pt-12">
-            <p className="mb-2 text-[0.78rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
+            <p className="mb-2 text-[0.82rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
             <div className="flex items-center justify-between gap-3">
               <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
                 Deine Basis.
@@ -1288,13 +1288,13 @@ export default function Home() {
         <div className="mt-8 flex items-center justify-center gap-5">
           <button
             onClick={() => supabase?.auth.signOut()}
-            className="text-xs text-[var(--espresso-28)]"
+            className="text-sm text-[var(--espresso-28)]"
           >
             Ausloggen
           </button>
           <button
             onClick={() => setDeleteConfirm(true)}
-            className="text-xs text-[var(--espresso-28)] underline underline-offset-2"
+            className="text-sm text-[var(--espresso-28)] underline underline-offset-2"
           >
             Konto löschen
           </button>
@@ -1302,18 +1302,18 @@ export default function Home() {
         {deleteConfirm && (
           <div className="mx-auto mt-4 max-w-xs rounded-xl border border-red-200 bg-red-50 p-4 text-left">
             <p className="text-sm font-bold text-red-700">Konto wirklich löschen?</p>
-            <p className="mt-1 text-xs text-red-500">Alle deine Daten, Einträge und Favoriten werden unwiderruflich gelöscht.</p>
+            <p className="mt-1 text-sm text-red-500">Alle deine Daten, Einträge und Favoriten werden unwiderruflich gelöscht.</p>
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => setDeleteConfirm(false)}
-                className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-xs font-bold text-[var(--espresso-50)]"
+                className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-sm font-bold text-[var(--espresso-50)]"
               >
                 Abbrechen
               </button>
               <button
                 onClick={deleteAccount}
                 disabled={deleting}
-                className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white disabled:opacity-60"
+                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-bold text-white disabled:opacity-60"
               >
                 {deleting ? "Wird gelöscht…" : "Ja, löschen"}
               </button>
@@ -1474,7 +1474,7 @@ function ScoreStepper({
   const score = Math.min(5, Math.max(1, parseInt(value) || 3));
   return (
     <div>
-      <span className="mb-2 block text-xs font-bold text-[var(--espresso-50)]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
       <div className="soft-card flex flex-col items-center gap-2 rounded-md py-3">
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((d) => (
@@ -1546,7 +1546,7 @@ function ProfileSetupForm({
             <PreviewMetric inverted={inv} label="Carbs" value={`${calculatedPreview.carbs} g`} />
             <PreviewMetric inverted={inv} label="Fett" value={`${calculatedPreview.fat} g`} />
           </div>
-          <p className={`mt-4 text-xs leading-5 ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>
+          <p className={`mt-4 text-sm leading-5 ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>
             Diese Werte sind ein persönlicher Richtwert — kein starres Ziel.
           </p>
         </div>
@@ -1587,7 +1587,7 @@ function PreviewMetric({ label, value, inverted }: { label: string; value: numbe
   return (
     <div>
       <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
-      <p className={`text-xs font-bold uppercase tracking-[0.06em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
+      <p className={`text-sm font-bold uppercase tracking-[0.06em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1755,9 +1755,9 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   const remaining = Math.max(goal - value, 0);
   return (
     <div className="soft-card p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
+      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
       <p className="serif nums mt-2 text-2xl text-[var(--espresso)]">{fmtG(remaining)} g</p>
-      <p className="text-xs text-[var(--espresso-50)]">von {goal} g</p>
+      <p className="text-sm text-[var(--espresso-50)]">von {goal} g</p>
     </div>
   );
 }
@@ -1772,7 +1772,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
       <div>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
-          <button type="button" onClick={() => setUnit("g")} className="text-xs font-bold text-[var(--coral)]">in Gramm →</button>
+          <button type="button" onClick={() => setUnit("g")} className="text-sm font-bold text-[var(--coral)]">in Gramm →</button>
         </div>
         <div className="soft-card flex items-center justify-between rounded-md p-2">
           <button
@@ -1798,7 +1798,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
-        {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-xs font-bold text-[var(--coral)]">in Stück →</button>}
+        {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-sm font-bold text-[var(--coral)]">in Stück →</button>}
       </div>
       <div className="soft-card flex items-center justify-between rounded-md p-2">
         <button
@@ -1900,7 +1900,7 @@ function FoodSearch({
               </>
             )}
             {searching && apiResults.length === 0 && query.length >= 2 && (
-              <div className="flex items-center gap-2 px-4 py-3 text-xs text-[var(--espresso-50)]">
+              <div className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--espresso-50)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Datenbank wird durchsucht...
               </div>
@@ -1938,12 +1938,12 @@ function FoodItem({ food, onSelect, onFavorite, isFavorite }: { food: FoodResult
       >
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
-          {food.brand ? <p className="truncate text-xs text-[var(--espresso-50)]">{food.brand}</p> : null}
+          {food.brand ? <p className="truncate text-sm text-[var(--espresso-50)]">{food.brand}</p> : null}
         </div>
         <div className="shrink-0 text-right">
           <p className="serif text-lg text-[var(--coral)]">{food.per100g.calories}</p>
-          <p className="text-xs text-[var(--espresso-50)]">kcal</p>
-          <p className="mt-0.5 text-xs text-[var(--espresso-50)]">P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}</p>
+          <p className="text-sm text-[var(--espresso-50)]">kcal</p>
+          <p className="mt-0.5 text-sm text-[var(--espresso-50)]">P {food.per100g.protein} · C {food.per100g.carbs} · F {food.per100g.fat}</p>
         </div>
       </button>
       <button
@@ -1962,9 +1962,9 @@ function WaterStatus({ water }: { water: string }) {
   const liters = parseFloat(water) || 0;
   return (
     <div className="soft-card p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Wasser</p>
+      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Wasser</p>
       <p className="serif mt-2 text-2xl text-[var(--espresso)]">{liters > 0 ? `${liters} l` : "—"}</p>
-      <p className="text-xs text-[var(--espresso-50)]">getrunken</p>
+      <p className="text-sm text-[var(--espresso-50)]">getrunken</p>
     </div>
   );
 }
@@ -1976,9 +1976,9 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   if (values.length === 0) {
     return (
       <div className="soft-card p-3">
-        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+        <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
         <p className="serif mt-2 text-2xl text-[var(--espresso)]">—</p>
-        <p className="text-xs text-[var(--espresso-50)]">Check-In ausfüllen</p>
+        <p className="text-sm text-[var(--espresso-50)]">Check-In ausfüllen</p>
       </div>
     );
   }
@@ -1986,7 +1986,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   const dots = Array.from({ length: 5 }, (_, i) => i + 1);
   return (
     <div className="soft-card p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
       <div className="mt-2 flex gap-1">
         {dots.map((d) => (
           <span
@@ -1995,7 +1995,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
           />
         ))}
       </div>
-      <p className="mt-1 text-xs text-[var(--espresso-50)]">{score} / 5</p>
+      <p className="mt-1 text-sm text-[var(--espresso-50)]">{score} / 5</p>
     </div>
   );
 }

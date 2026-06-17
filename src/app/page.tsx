@@ -1010,10 +1010,10 @@ export default function Home() {
             </AccordionSection>
 
             <section className="app-card reveal-in reveal-delay-2 mb-5 p-5">
-              <div className="mb-5 flex items-start justify-between gap-4">
+              <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
-                  <p className="kicker mb-2">Kalorien übrig</p>
-                  <p className="serif nums text-[4.85rem] leading-none text-[var(--coral)]">
+                  <p className="kicker mb-1">Kalorien übrig</p>
+                  <p className="serif nums text-[4.85rem] leading-[0.88] text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (

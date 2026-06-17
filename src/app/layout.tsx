@@ -18,6 +18,14 @@ export const metadata: Metadata = {
   title: "Kalorientracker",
   description: "Mobile-first calorie and macro tracker for Stephan and Jen.",
   themeColor: "#f1e7d6",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+  },
 };
 
 export default function RootLayout({

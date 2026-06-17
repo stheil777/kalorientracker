@@ -17,6 +17,7 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "Kalorientracker",
   description: "Mobile-first calorie and macro tracker for Stephan and Jen.",
+  themeColor: "#f1e7d6",
 };
 
 export default function RootLayout({

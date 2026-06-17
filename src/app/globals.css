@@ -24,7 +24,7 @@
 }
 
 html {
-  background: var(--ivory);
+  background: var(--sand);
   color: var(--espresso-70);
   overflow-x: hidden;
 }
@@ -32,8 +32,8 @@ html {
 body {
   min-width: 320px;
   background:
-    radial-gradient(circle at 18% 2%, rgba(240, 107, 93, 0.1), transparent 28rem),
-    linear-gradient(180deg, rgba(250, 247, 242, 0.99), rgba(250, 247, 242, 0.96) 38%, rgba(241, 231, 214, 0.42));
+    radial-gradient(circle at 18% 2%, rgba(240, 107, 93, 0.12), transparent 28rem),
+    linear-gradient(180deg, var(--sand) 0%, var(--ivory) 40%, rgba(241, 231, 214, 0.6) 100%);
   color: var(--foreground);
   font-family: var(--font-manrope), system-ui, sans-serif;
   font-optical-sizing: auto;

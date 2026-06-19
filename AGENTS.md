@@ -44,6 +44,7 @@ supabase/
 - `meal_entries` - Mahlzeiten pro Tag/Profil mit Kalorien + Makros
 - `favorite_meals` - Gespeicherte Favoriten fuer Schnellzugriff
 - `daily_notes` - Tagesnotizen (Gewicht, Training, Wasser, Schlaf, Energie)
+- `daily_training_entries` - Mehrere Sportarten pro Tag mit Dauer und Kalorien
 - `user_consent_events` - Append-only Nachweis von Erteilung/Widerruf versionierter Einwilligungen
 
 Row Level Security ist aktiv -- alle Queries filtern auf `auth.uid()`.

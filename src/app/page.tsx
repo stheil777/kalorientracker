@@ -18,6 +18,7 @@ import {
   Heart,
   Loader2,
   LogOut,
+  Plus,
   Search,
   Settings2,
   Star,
@@ -40,6 +41,7 @@ import type {
   MealType,
   Profile,
   Sex,
+  TrainingEntry,
 } from "@/lib/types";
 
 const mealLabels: Record<MealType, string> = {
@@ -65,6 +67,7 @@ const TRAINING_ACTIVITIES = [
   { value: "radfahren", label: "Radfahren", met: 6.8 },
   { value: "schwimmen", label: "Schwimmen", met: 6.0 },
   { value: "krafttraining", label: "Krafttraining", met: 5.0 },
+  { value: "bauch", label: "Bauchtraining", met: 4.0 },
   { value: "laufen", label: "Laufen", met: 8.3 },
   { value: "hiit", label: "HIIT", met: 8.0 },
 ];
@@ -255,6 +258,9 @@ export default function Home() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
   const [dailyNote, setDailyNote] = useState(blankNote);
+  const [trainingEntries, setTrainingEntries] = useState<TrainingEntry[]>([]);
+  const [trainingDraft, setTrainingDraft] = useState({ activity: "spaziergang", duration: "30" });
+  const [trainingSaving, setTrainingSaving] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -307,8 +313,13 @@ export default function Home() {
     [meals],
   );
 
+  const trainingCalories = useMemo(
+    () => trainingEntries.reduce((sum, entry) => sum + entry.calories, 0),
+    [trainingEntries],
+  );
+
   const caloriesLeft = Math.max(
-    (activeProfile?.calorie_goal ?? 0) - totals.calories + (Number(dailyNote.training_kcal) || 0),
+    (activeProfile?.calorie_goal ?? 0) - totals.calories + trainingCalories,
     0,
   );
   const animatedCaloriesLeft = useAnimatedNumber(caloriesLeft);
@@ -332,6 +343,7 @@ export default function Home() {
       setMeals([]);
       setFavorites([]);
       setDailyNote(blankNote);
+      setTrainingEntries([]);
       setConsentStatus(session?.user ? "loading" : "required");
       setHealthConsentAccepted(false);
       setConsentError("");
@@ -479,7 +491,7 @@ export default function Home() {
   async function refreshDay() {
     if (!supabase || !activeProfile) return;
 
-    const [{ data: mealRows }, { data: noteRows }] = await Promise.all([
+    const [{ data: mealRows }, { data: noteRows }, { data: trainingRows }] = await Promise.all([
       supabase
         .from("meal_entries")
         .select("*")
@@ -492,9 +504,16 @@ export default function Home() {
         .eq("profile_id", activeProfile.id)
         .eq("date", date)
         .limit(1),
+      supabase
+        .from("daily_training_entries")
+        .select("*")
+        .eq("profile_id", activeProfile.id)
+        .eq("date", date)
+        .order("created_at", { ascending: true }),
     ]);
 
     setMeals((mealRows ?? []) as MealEntry[]);
+    setTrainingEntries((trainingRows ?? []) as TrainingEntry[]);
     const note = noteRows?.[0] as DailyNote | undefined;
     setDailyNote(
       note
@@ -666,6 +685,7 @@ export default function Home() {
     setActiveProfileId("");
     setMeals([]);
     setFavorites([]);
+    setTrainingEntries([]);
     setDailyNote(blankNote);
     setWithdrawConsentConfirm(false);
     setConsentStatus("required");
@@ -746,17 +766,18 @@ export default function Home() {
     if (!supabase || !user || !activeProfile) return;
     setSaving(true);
 
+    const firstTraining = trainingEntries[0];
     const { error: noteError } = await supabase.from("daily_notes").upsert(
       {
         user_id: user.id,
         profile_id: activeProfile.id,
         date,
         weight: dailyNote.weight ? Number(dailyNote.weight) : null,
-        training: dailyNote.training,
+        training: trainingEntries.length > 0,
         training_notes: dailyNote.training_notes.trim() || null,
-        training_activity: dailyNote.training ? (dailyNote.training_activity || null) : null,
-        training_duration_min: dailyNote.training && dailyNote.training_duration_min ? Number(dailyNote.training_duration_min) : null,
-        training_kcal: dailyNote.training && dailyNote.training_kcal ? Number(dailyNote.training_kcal) : null,
+        training_activity: firstTraining?.activity ?? null,
+        training_duration_min: firstTraining?.duration_min ?? null,
+        training_kcal: trainingEntries.length > 0 ? trainingCalories : null,
         water_intake: dailyNote.water_intake ? Number(dailyNote.water_intake) : null,
         sleep_quality: dailyNote.sleep_quality ? Number(dailyNote.sleep_quality) : null,
         energy_level: dailyNote.energy_level ? Number(dailyNote.energy_level) : null,
@@ -784,6 +805,53 @@ export default function Home() {
     const id = toastIdRef.current;
     setToast({ id, msg });
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2700);
+  }
+
+  async function addTrainingEntry() {
+    if (!supabase || !user || !activeProfile) return;
+    const duration = Math.max(5, Number(trainingDraft.duration) || 30);
+    const activity = TRAINING_ACTIVITIES.find((item) => item.value === trainingDraft.activity) ?? TRAINING_ACTIVITIES[0];
+    const weight = Number(dailyNote.weight) || activeProfile.current_weight || 65;
+    const calories = Math.round(activity.met * weight * (duration / 60));
+
+    setTrainingSaving(true);
+    const { data, error } = await supabase
+      .from("daily_training_entries")
+      .insert({
+        user_id: user.id,
+        profile_id: activeProfile.id,
+        date,
+        activity: activity.value,
+        duration_min: duration,
+        calories,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      setSaveError("Sportart konnte nicht gespeichert werden.");
+      setTrainingSaving(false);
+      return;
+    }
+
+    setTrainingEntries((current) => [...current, data as TrainingEntry]);
+    setTrainingDraft({ activity: "spaziergang", duration: "30" });
+    setTrainingSaving(false);
+    playSave();
+  }
+
+  async function deleteTrainingEntry(entryId: string) {
+    if (!supabase) return;
+    setTrainingSaving(true);
+    const { error } = await supabase.from("daily_training_entries").delete().eq("id", entryId);
+    if (error) {
+      setSaveError("Sportart konnte nicht gelöscht werden.");
+      setTrainingSaving(false);
+      return;
+    }
+    setTrainingEntries((current) => current.filter((entry) => entry.id !== entryId));
+    setTrainingSaving(false);
+    playDelete();
   }
 
   function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }, initialGrams?: number) {
@@ -1097,28 +1165,17 @@ export default function Home() {
           <>
             <AccordionSection title="Daily Check-in" icon={<Heart />} open={checkInOpen} onOpenChange={setCheckInOpen}>
               <form onSubmit={saveDailyNote} className="space-y-3">
-                <ToggleRow
-                  label="Training heute?"
-                  checked={dailyNote.training}
-                  onChange={(checked) => {
-                    const activity = checked ? (dailyNote.training_activity || "yoga") : "";
-                    const duration = checked ? (dailyNote.training_duration_min || "30") : "";
-                    const weight = parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65;
-                    const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 3.0;
-                    const kcal = checked ? String(Math.round(met * weight * (parseInt(duration) / 60))) : "";
-                    setDailyNote({ ...dailyNote, training: checked, training_activity: activity, training_duration_min: duration, training_kcal: kcal });
-                  }}
+                <TrainingEntriesEditor
+                  entries={trainingEntries}
+                  activity={trainingDraft.activity}
+                  duration={trainingDraft.duration}
+                  weight={Number(dailyNote.weight) || activeProfile.current_weight || 65}
+                  saving={trainingSaving}
+                  onActivityChange={(activity) => setTrainingDraft((current) => ({ ...current, activity }))}
+                  onDurationChange={(duration) => setTrainingDraft((current) => ({ ...current, duration }))}
+                  onAdd={addTrainingEntry}
+                  onDelete={deleteTrainingEntry}
                 />
-                {dailyNote.training && (
-                  <TrainingPicker
-                    activity={dailyNote.training_activity}
-                    duration={dailyNote.training_duration_min}
-                    weight={parseFloat(dailyNote.weight) || activeProfile?.current_weight || 65}
-                    onChange={(activity, duration, kcal) =>
-                      setDailyNote({ ...dailyNote, training_activity: activity, training_duration_min: duration, training_kcal: kcal })
-                    }
-                  />
-                )}
                 <div className="grid grid-cols-2 gap-3">
                   <WaterStepper
                     value={dailyNote.water_intake}
@@ -1182,8 +1239,8 @@ export default function Home() {
                   >
                     {animatedCaloriesLeft}
                   </p>
-                  {Number(dailyNote.training_kcal) > 0 && (
-                    <p className="mt-1 text-sm font-bold text-[var(--coral)]">+{dailyNote.training_kcal} kcal Training</p>
+                  {trainingCalories > 0 && (
+                    <p className="mt-1 text-sm font-medium text-[var(--coral)]">+{trainingCalories} kcal Training</p>
                   )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
@@ -1840,63 +1897,111 @@ function Input({
   );
 }
 
-function TrainingPicker({
+function TrainingEntriesEditor({
+  entries,
   activity,
   duration,
   weight,
-  onChange,
+  saving,
+  onActivityChange,
+  onDurationChange,
+  onAdd,
+  onDelete,
 }: {
+  entries: TrainingEntry[];
   activity: string;
   duration: string;
   weight: number;
-  onChange: (activity: string, duration: string, kcal: string) => void;
+  saving: boolean;
+  onActivityChange: (activity: string) => void;
+  onDurationChange: (duration: string) => void;
+  onAdd: () => void;
+  onDelete: (entryId: string) => void;
 }) {
   const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 5.0;
   const durationMin = Math.max(5, parseInt(duration) || 30);
   const kcal = Math.round(met * weight * (durationMin / 60));
 
-  function update(newActivity: string, newDuration: string) {
-    const newMet = TRAINING_ACTIVITIES.find((a) => a.value === newActivity)?.met ?? 5.0;
-    const newMin = Math.max(5, parseInt(newDuration) || 30);
-    onChange(newActivity, newDuration, String(Math.round(newMet * weight * (newMin / 60))));
-  }
-
   return (
-    <div className="space-y-3">
-      <label className="block">
-        <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Sport</span>
-        <select value={activity || "yoga"} onChange={(e) => update(e.target.value, duration)} className="field">
-          {TRAINING_ACTIVITIES.map((a) => (
-            <option key={a.value} value={a.value}>{a.label}</option>
-          ))}
-        </select>
-      </label>
+    <div className="space-y-4">
       <div>
-        <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Dauer</span>
-        <div className="soft-card flex items-center justify-between rounded-md p-1">
-          <button
-            type="button"
-            onClick={() => update(activity || "yoga", String(Math.max(5, durationMin - 5)))}
-            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-          >
-            -
-          </button>
-          <div className="text-center">
-            <span className="serif text-2xl text-[var(--espresso)]">{durationMin}</span>
-            <span className="ml-1 text-sm text-[var(--espresso-50)]">min</span>
+        <p className="mb-2 text-sm font-medium text-[var(--espresso-50)]">Sport heute</p>
+        {entries.length > 0 ? (
+          <div className="space-y-2">
+            {entries.map((entry) => {
+              const label = TRAINING_ACTIVITIES.find((item) => item.value === entry.activity)?.label ?? entry.activity;
+              return (
+                <div key={entry.id} className="soft-card flex items-center justify-between gap-3 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--espresso)]">{label}</p>
+                    <p className="text-sm text-[var(--espresso-50)]">{entry.duration_min} min · ca. {entry.calories} kcal</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`${label} löschen`}
+                    onClick={() => onDelete(entry.id)}
+                    disabled={saving}
+                    className="pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[var(--espresso-50)]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
-          <button
-            type="button"
-            onClick={() => update(activity || "yoga", String(Math.min(180, durationMin + 5)))}
-            className="pressable flex h-12 w-10 items-center justify-center rounded-md text-2xl font-black text-[var(--espresso-50)] active:bg-[rgba(52,40,32,0.08)]"
-          >
-            +
-          </button>
-        </div>
+        ) : (
+          <p className="soft-card p-3 text-sm text-[var(--espresso-50)]">Noch keine Sportart eingetragen.</p>
+        )}
       </div>
-      <div className="soft-card flex items-center justify-between p-3">
-        <span className="text-sm font-medium text-[var(--espresso-50)]">Geschätzt verbrannt</span>
-        <span className="serif text-2xl text-[var(--coral)]">≈ {kcal} kcal</span>
+
+      <div className="rounded-lg border border-[var(--espresso-14)] bg-white/55 p-3">
+        <div className="grid grid-cols-[1fr_auto] gap-3">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Sportart</span>
+            <select value={activity} onChange={(event) => onActivityChange(event.target.value)} className="field">
+              {TRAINING_ACTIVITIES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <div>
+            <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Dauer</span>
+            <div className="soft-card flex h-[52px] items-center rounded-md">
+              <button
+                type="button"
+                aria-label="Dauer reduzieren"
+                onClick={() => onDurationChange(String(Math.max(5, durationMin - 5)))}
+                className="pressable h-full w-10 text-xl text-[var(--espresso-50)]"
+              >
+                −
+              </button>
+              <span className="min-w-16 text-center text-sm text-[var(--espresso)]">{durationMin} min</span>
+              <button
+                type="button"
+                aria-label="Dauer erhöhen"
+                onClick={() => onDurationChange(String(Math.min(300, durationMin + 5)))}
+                className="pressable h-full w-10 text-xl text-[var(--espresso-50)]"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={saving}
+          className="coral-button mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-bold"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              Sportart hinzufügen · ca. {kcal} kcal
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

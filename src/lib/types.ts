@@ -81,6 +81,17 @@ export type DailyNote = {
   notes: string | null;
 };
 
+export type TrainingEntry = {
+  id: string;
+  user_id: string;
+  profile_id: string;
+  date: string;
+  activity: string;
+  duration_min: number;
+  calories: number;
+  created_at: string;
+};
+
 export type MealFormState = {
   meal_type: MealType;
   food_name: string;

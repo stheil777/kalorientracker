@@ -17,6 +17,7 @@ import {
   Flame,
   Heart,
   Loader2,
+  LogOut,
   Search,
   Settings2,
   Star,
@@ -1447,25 +1448,31 @@ export default function Home() {
 
       <footer className="pb-12 pt-2 text-center">
         <p className="serif text-2xl italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+        <div className="mx-auto mt-8 max-w-xs">
           <button
+            type="button"
             onClick={() => supabase?.auth.signOut()}
-            className="text-sm text-[var(--espresso-28)]"
+            className="pressable flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[var(--espresso-14)] bg-white/70 text-sm font-extrabold text-[var(--espresso-70)] shadow-sm"
           >
+            <LogOut className="h-4 w-4" />
             Ausloggen
           </button>
-          <button
-            onClick={() => setDeleteConfirm(true)}
-            className="text-sm text-[var(--espresso-28)] underline underline-offset-2"
-          >
-            Konto löschen
-          </button>
-          <button
-            onClick={() => setWithdrawConsentConfirm(true)}
-            className="text-sm text-[var(--espresso-28)] underline underline-offset-2"
-          >
-            Einwilligung widerrufen
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <button
+              type="button"
+              onClick={() => setWithdrawConsentConfirm(true)}
+              className="text-sm text-[var(--espresso-50)] underline decoration-[var(--espresso-28)] underline-offset-4"
+            >
+              Einwilligung widerrufen
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(true)}
+              className="text-sm text-red-600/70 underline decoration-red-300 underline-offset-4"
+            >
+              Konto löschen
+            </button>
+          </div>
         </div>
         {withdrawConsentConfirm && (
           <div className="mx-auto mt-4 max-w-xs rounded-xl border border-[var(--espresso-14)] bg-white/80 p-4 text-left">

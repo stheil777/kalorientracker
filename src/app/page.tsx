@@ -74,6 +74,11 @@ const defaultGoals = {
   Jen: { calories: 1900, protein: 130, carbs: 190, fat: 60 },
 } as const;
 
+const HEALTH_CONSENT_TYPE = "health_data_processing";
+const HEALTH_CONSENT_VERSION = "2026-06-19-v1";
+const HEALTH_CONSENT_TEXT =
+  "Ich willige ausdrücklich ein, dass meine Gesundheits- und Ernährungsdaten – insbesondere Gewicht, Körpermaße, Kalorien- und Makroangaben, Trainings-, Schlaf-, Energie-, Zyklus- und Unverträglichkeitsangaben – zum Betrieb des Kalorientrackers, zur persönlichen Auswertung und zur Begleitung durch Jen verarbeitet werden. Mir ist bekannt, dass diese Einwilligung freiwillig ist und ich sie jederzeit mit Wirkung für die Zukunft widerrufen kann.";
+
 const blankNote = {
   weight: "",
   training: false,
@@ -236,6 +241,11 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<"loading" | "required" | "granted">("loading");
+  const [healthConsentAccepted, setHealthConsentAccepted] = useState(false);
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState("");
+  const [withdrawConsentConfirm, setWithdrawConsentConfirm] = useState(false);
   const [resetMode, setResetMode] = useState<"idle" | "sending" | "sent">("idle");
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -316,6 +326,14 @@ export default function Home() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      setProfiles([]);
+      setActiveProfileId("");
+      setMeals([]);
+      setFavorites([]);
+      setDailyNote(blankNote);
+      setConsentStatus(session?.user ? "loading" : "required");
+      setHealthConsentAccepted(false);
+      setConsentError("");
       setUser(session?.user ?? null);
     });
 
@@ -327,6 +345,35 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!user || !supabase) return;
+    const userId = user.id;
+
+    async function loadConsent() {
+      setConsentStatus("loading");
+      const { data, error } = await supabase!
+        .from("user_consent_events")
+        .select("event_type")
+        .eq("user_id", userId)
+        .eq("consent_type", HEALTH_CONSENT_TYPE)
+        .eq("consent_version", HEALTH_CONSENT_VERSION)
+        .order("occurred_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        setConsentError("Die Einwilligung konnte nicht geprüft werden. Bitte versuche es später erneut.");
+        setConsentStatus("required");
+        return;
+      }
+
+      setConsentStatus(data?.event_type === "granted" ? "granted" : "required");
+    }
+
+    loadConsent();
+  }, [user]);
+
+  useEffect(() => {
+    if (consentStatus !== "granted") return;
     if (!user || !supabase) return;
     const userId = user.id;
 
@@ -384,14 +431,15 @@ export default function Home() {
     }
 
     loadProfiles();
-  }, [user]);
+  }, [user, consentStatus]);
 
   useEffect(() => {
+    if (consentStatus !== "granted") return;
     if (!user || !activeProfile || !supabase) return;
     refreshDay();
     refreshFavorites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeProfileId, date]);
+  }, [user, activeProfileId, date, consentStatus]);
 
   useEffect(() => {
     if (!saveError) return;
@@ -567,6 +615,61 @@ export default function Home() {
     if (error) { setAuthMessage(error.message); }
     else { setPasswordRecovery(false); setAuthMessage(""); }
     setSaving(false);
+  }
+
+  async function grantHealthConsent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || !user || !healthConsentAccepted) return;
+    setConsentSaving(true);
+    setConsentError("");
+
+    const { error } = await supabase.from("user_consent_events").insert({
+      user_id: user.id,
+      consent_type: HEALTH_CONSENT_TYPE,
+      consent_version: HEALTH_CONSENT_VERSION,
+      event_type: "granted",
+      consent_text: HEALTH_CONSENT_TEXT,
+    });
+
+    if (error) {
+      setConsentError("Die Einwilligung konnte nicht gespeichert werden. Bitte versuche es erneut.");
+      setConsentSaving(false);
+      return;
+    }
+
+    setConsentStatus("granted");
+    setHealthConsentAccepted(false);
+    setConsentSaving(false);
+  }
+
+  async function withdrawHealthConsent() {
+    if (!supabase || !user) return;
+    setConsentSaving(true);
+    setConsentError("");
+
+    const { error } = await supabase.from("user_consent_events").insert({
+      user_id: user.id,
+      consent_type: HEALTH_CONSENT_TYPE,
+      consent_version: HEALTH_CONSENT_VERSION,
+      event_type: "withdrawn",
+      consent_text: HEALTH_CONSENT_TEXT,
+    });
+
+    if (error) {
+      setSaveError("Die Einwilligung konnte nicht widerrufen werden.");
+      setConsentSaving(false);
+      return;
+    }
+
+    setProfiles([]);
+    setActiveProfileId("");
+    setMeals([]);
+    setFavorites([]);
+    setDailyNote(blankNote);
+    setWithdrawConsentConfirm(false);
+    setConsentStatus("required");
+    setConsentSaving(false);
+    await supabase.auth.signOut();
   }
 
   async function deleteMeal(mealId: string) {
@@ -793,6 +896,77 @@ export default function Home() {
             )}
             <button className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Passwort speichern"}
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
+  if (user && consentStatus === "loading") {
+    return (
+      <main className="app-shell grid place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--coral)]" />
+      </main>
+    );
+  }
+
+  if (user && consentStatus === "required") {
+    return (
+      <main className="app-shell px-5 py-8">
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
+          <div className="mb-8 reveal-in">
+            <p className="kicker mb-4">Deine Daten. Deine Entscheidung.</p>
+            <h1 className="serif text-[2.8rem] leading-[1.02] text-[var(--espresso)]">
+              Gesundheitsdaten bewusst freigeben.
+            </h1>
+            <p className="mt-4 text-base leading-7 text-[var(--espresso-50)]">
+              Der Tracker verarbeitet sensible Angaben. Deshalb benötigen wir dafür eine separate, ausdrückliche Einwilligung.
+            </p>
+          </div>
+
+          <form onSubmit={grantHealthConsent} className="app-card reveal-in reveal-delay-1 space-y-5 p-5">
+            <div className="space-y-3 text-sm leading-6 text-[var(--espresso-70)]">
+              <p>{HEALTH_CONSENT_TEXT}</p>
+              <p>
+                Weitere Informationen findest du in der{" "}
+                <a href="/datenschutz" target="_blank" className="font-bold text-[var(--coral)] underline underline-offset-2">
+                  Datenschutzerklärung
+                </a>.
+              </p>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-md bg-[rgba(241,231,214,0.55)] p-4">
+              <input
+                type="checkbox"
+                checked={healthConsentAccepted}
+                onChange={(event) => setHealthConsentAccepted(event.target.checked)}
+                className="mt-1 h-5 w-5 flex-shrink-0 accent-[var(--coral)]"
+              />
+              <span className="text-sm font-bold leading-6 text-[var(--espresso)]">
+                Ich willige ausdrücklich in die beschriebene Verarbeitung meiner Gesundheitsdaten ein.
+              </span>
+            </label>
+
+            {consentError ? (
+              <p className="rounded-md bg-[rgba(220,60,40,0.10)] p-3 text-sm leading-6 text-[#b83030]">
+                {consentError}
+              </p>
+            ) : null}
+
+            <button
+              disabled={!healthConsentAccepted || consentSaving}
+              className="coral-button flex h-14 w-full items-center justify-center rounded-md text-base font-black"
+            >
+              {consentSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Einwilligen und fortfahren"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => supabase?.auth.signOut()}
+              className="pressable w-full text-center text-sm text-[var(--espresso-50)]"
+            >
+              Ausloggen
             </button>
           </form>
         </section>
@@ -1273,7 +1447,7 @@ export default function Home() {
 
       <footer className="pb-12 pt-2 text-center">
         <p className="serif text-2xl italic leading-snug text-[var(--coral)]">Dein Körper kennt die Antwort.<br />Wir hören gemeinsam hin.</p>
-        <div className="mt-8 flex items-center justify-center gap-5">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
           <button
             onClick={() => supabase?.auth.signOut()}
             className="text-sm text-[var(--espresso-28)]"
@@ -1286,7 +1460,36 @@ export default function Home() {
           >
             Konto löschen
           </button>
+          <button
+            onClick={() => setWithdrawConsentConfirm(true)}
+            className="text-sm text-[var(--espresso-28)] underline underline-offset-2"
+          >
+            Einwilligung widerrufen
+          </button>
         </div>
+        {withdrawConsentConfirm && (
+          <div className="mx-auto mt-4 max-w-xs rounded-xl border border-[var(--espresso-14)] bg-white/80 p-4 text-left">
+            <p className="text-sm font-bold text-[var(--espresso)]">Einwilligung widerrufen?</p>
+            <p className="mt-1 text-sm leading-5 text-[var(--espresso-50)]">
+              Danach wirst du ausgeloggt und kannst den Tracker erst nach einer erneuten Einwilligung wieder nutzen.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => setWithdrawConsentConfirm(false)}
+                className="flex-1 rounded-lg border border-[var(--espresso-14)] bg-white py-2 text-sm font-bold text-[var(--espresso-50)]"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={withdrawHealthConsent}
+                disabled={consentSaving}
+                className="flex-1 rounded-lg bg-[var(--espresso)] py-2 text-sm font-bold text-white"
+              >
+                {consentSaving ? "Wird gespeichert…" : "Widerrufen"}
+              </button>
+            </div>
+          </div>
+        )}
         {deleteConfirm && (
           <div className="mx-auto mt-4 max-w-xs rounded-xl border border-red-200 bg-red-50 p-4 text-left">
             <p className="text-sm font-bold text-red-700">Konto wirklich löschen?</p>

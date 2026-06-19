@@ -81,9 +81,21 @@ create table public.daily_notes (
   unique (user_id, profile_id, date)
 );
 
+create table public.user_consent_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  consent_type text not null,
+  consent_version text not null,
+  event_type text not null check (event_type in ('granted', 'withdrawn')),
+  consent_text text not null,
+  occurred_at timestamptz not null default now()
+);
+
 create index meal_entries_user_profile_date_idx on public.meal_entries(user_id, profile_id, date);
 create index favorite_meals_user_profile_idx on public.favorite_meals(user_id, profile_id);
 create index daily_notes_user_profile_date_idx on public.daily_notes(user_id, profile_id, date);
+create index user_consent_events_user_type_date_idx
+on public.user_consent_events(user_id, consent_type, occurred_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -99,10 +111,25 @@ create trigger daily_notes_set_updated_at
 before update on public.daily_notes
 for each row execute function public.set_updated_at();
 
+create or replace function public.set_consent_event_occurred_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.occurred_at = now();
+  return new;
+end;
+$$;
+
+create trigger user_consent_events_set_occurred_at
+before insert on public.user_consent_events
+for each row execute function public.set_consent_event_occurred_at();
+
 alter table public.profiles enable row level security;
 alter table public.meal_entries enable row level security;
 alter table public.favorite_meals enable row level security;
 alter table public.daily_notes enable row level security;
+alter table public.user_consent_events enable row level security;
 
 create policy "profiles_select_own" on public.profiles
 for select using (auth.uid() = user_id);
@@ -202,3 +229,9 @@ with check (
 
 create policy "daily_notes_delete_own" on public.daily_notes
 for delete using (auth.uid() = user_id);
+
+create policy "user_consent_events_select_own" on public.user_consent_events
+for select using (auth.uid() = user_id);
+
+create policy "user_consent_events_insert_own" on public.user_consent_events
+for insert with check (auth.uid() = user_id);

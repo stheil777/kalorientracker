@@ -917,7 +917,7 @@ export default function Home() {
       <main className="app-shell px-5 py-8">
         <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
           <div className="mb-8 reveal-in">
-            <p className="eyebrow mb-4">Deine Daten. Deine Entscheidung.</p>
+            <p className="mb-4 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">Deine Daten. Deine Entscheidung.</p>
             <h1 className="serif text-[2.8rem] leading-[1.02] text-[var(--espresso)]">
               Gesundheitsdaten bewusst freigeben.
             </h1>
@@ -983,7 +983,7 @@ export default function Home() {
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-[var(--coral)] text-white shadow-[0_18px_36px_rgba(240,107,93,0.24)]">
               <Flame className="h-7 w-7" />
             </div>
-            <p className="eyebrow mb-4">Von Jen, für dich.</p>
+            <p className="mb-4 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">Von Jen, für dich.</p>
             <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Iss was dir gut tut.</h1>
             <p className="mt-5 max-w-sm text-[1.05rem] leading-8 text-[var(--espresso-50)]">
               Dein täglicher Begleiter für bewusstes Essen — mit Leichtigkeit.
@@ -1067,7 +1067,7 @@ export default function Home() {
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pt-12" style={{ paddingBottom: "max(4rem, env(safe-area-inset-bottom))" }}>
         <header className="reveal-in mb-6">
-          <p className="eyebrow mb-2">{formatGermanDate(date)}</p>
+          <p className="mb-2 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">{formatGermanDate(date)}</p>
           <div className="flex items-center justify-between gap-3">
             <h1 className="serif min-w-0 text-[2.55rem] leading-none text-[var(--espresso)]">
               Hey{" "}<span className="italic text-[var(--coral)] -ml-[0.08em]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
@@ -1148,7 +1148,7 @@ export default function Home() {
                   />
                 </div>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gelüste</span>
+                  <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Gelüste</span>
                   <input
                     value={dailyNote.cravings}
                     onChange={(e) => { playType(); setDailyNote({ ...dailyNote, cravings: e.target.value }); }}
@@ -1157,7 +1157,7 @@ export default function Home() {
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Notizen</span>
+                  <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Notizen</span>
                   <textarea
                     value={dailyNote.notes}
                     onChange={(e) => { playType(); setDailyNote({ ...dailyNote, notes: e.target.value }); }}
@@ -1175,7 +1175,7 @@ export default function Home() {
             <section className="app-card reveal-in reveal-delay-2 mb-5 p-5">
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
-                  <p className="eyebrow mb-1">Kalorien übrig</p>
+                  <p className="mb-1 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">Kalorien übrig</p>
                   <p className="serif nums text-[4.85rem] leading-[0.88] tracking-[-0.045em] text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
@@ -1184,7 +1184,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
-                  <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Gegessen</p>
+                  <p className="text-sm font-medium text-[var(--espresso-50)]">Gegessen</p>
                   <p className="serif nums text-2xl text-[var(--espresso)]">{totals.calories}</p>
                   <p className="text-sm text-[var(--espresso-50)]">kcal</p>
                 </div>
@@ -1228,7 +1228,7 @@ export default function Home() {
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
-                    <p className={`text-sm font-black ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
+                    <p className={`text-sm font-medium ${isActive ? "text-white" : "text-[var(--espresso-50)]"}`}>{mealLabels[type]}</p>
                     <p className={`serif mt-1 text-3xl leading-none ${isActive ? "text-white" : hasEntries ? "text-[var(--coral)]" : "text-[var(--espresso-20,rgba(52,40,32,0.2))]"}`}>
                       {hasEntries ? typeKcal : "+"}
                     </p>
@@ -1269,7 +1269,7 @@ export default function Home() {
                                 const p100 = { calories: (fav.calories / g) * 100, protein: (fav.protein / g) * 100, carbs: (fav.carbs / g) * 100, fat: (fav.fat / g) * 100 };
                                 openInlineFood(key, { name: fav.name, per100g: p100 }, g);
                               }} className="pressable min-w-0 flex-1 text-left">
-                                <p className="truncate text-sm font-black text-[var(--espresso)]">{fav.name}</p>
+                                <p className="truncate text-sm font-medium text-[var(--espresso)]">{fav.name}</p>
                                 <p className="text-sm text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
                               </button>
                               <button type="button" aria-label="Favorit löschen" onClick={() => deleteFavorite(fav.id)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)] text-[var(--espresso-40,rgba(52,40,32,0.4))]">
@@ -1301,7 +1301,7 @@ export default function Home() {
                           <div className="flex items-center gap-1 py-3">
                             <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+                                <p className="truncate text-sm font-medium text-[var(--espresso)]">{food.name}</p>
                                 <p className="text-sm text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
                               </div>
                               <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
@@ -1346,7 +1346,7 @@ export default function Home() {
                   {inlineKey?.startsWith("search:") && inlineFood && (
                     <div className="mt-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-black text-[var(--espresso)]">{inlineFood.name}</p>
+                        <p className="truncate text-sm font-medium text-[var(--espresso)]">{inlineFood.name}</p>
                         <button type="button" aria-label="Als Favorit speichern" onClick={() => toggleFavorite(inlineFood.name, inlineFood.per100g, inlineGrams, inlineLabel)} className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-[var(--espresso-14)]">
                           <Star className={`h-4 w-4 transition-colors ${favNames.has(inlineFood.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                         </button>
@@ -1361,7 +1361,7 @@ export default function Home() {
 
                 {(mealsByType[activeMealType] ?? []).length > 0 && (
                   <div className="overflow-hidden rounded-lg" style={{ background: "var(--coral)" }}>
-                    <p className="eyebrow px-4 pb-2 pt-4" style={{ color: "white" }}>Heute {mealLabels[activeMealType]}</p>
+                    <p className="px-4 pb-2 pt-4 text-[0.82rem] font-medium leading-[1.2] text-white">Heute {mealLabels[activeMealType]}</p>
                     <div className="divide-y divide-white/20">
                       {(mealsByType[activeMealType] ?? []).map((meal) => {
                         const editKey = `edit:${meal.id}`;
@@ -1375,7 +1375,7 @@ export default function Home() {
                             <div className="flex items-center gap-2 px-4 py-3">
                               <button type="button" onClick={() => openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                                 <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-black text-white">{meal.food_name}</p>
+                                  <p className="truncate text-sm font-medium text-white">{meal.food_name}</p>
                                   <p className="text-sm text-white">{meal.amount || "—"}</p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
@@ -1416,7 +1416,7 @@ export default function Home() {
       {profileModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
           <div className="mx-auto max-w-md px-4 pb-6 pt-12">
-            <p className="mb-2 text-[0.82rem] font-extrabold leading-[1.2] tracking-[0.02em] text-white">{formatGermanDate(date)}</p>
+            <p className="mb-2 text-[0.82rem] font-medium leading-[1.2] text-white">{formatGermanDate(date)}</p>
             <div className="flex items-center justify-between gap-3">
               <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
                 Deine Basis.
@@ -1527,7 +1527,7 @@ function SetupMissing() {
   return (
     <main className="app-shell grid place-items-center px-5">
       <section className="app-card max-w-md p-5">
-        <p className="eyebrow mb-3">Setup</p>
+        <p className="mb-3 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">Setup</p>
         <h1 className="serif text-3xl text-[var(--espresso)]">Supabase fehlt.</h1>
         <p className="mt-3 leading-7 text-[var(--espresso-50)]">
           Lege eine <code className="rounded bg-white px-1">.env.local</code> mit{" "}
@@ -1597,7 +1597,7 @@ function WaterStepper({ value, onChange }: { value: string; onChange: (v: string
   const dec = (n: number) => Math.round(n * 100) / 100;
   return (
     <div>
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Wasser</span>
+      <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Wasser</span>
       <div className="soft-card flex items-center justify-between rounded-md p-1">
         <button
           type="button"
@@ -1635,7 +1635,7 @@ function WeightStepper({
   const dec = (n: number) => Math.round(n * 10) / 10;
   return (
     <div>
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Gewicht</span>
+      <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Gewicht</span>
       <div className="soft-card flex items-center justify-between rounded-md p-1">
         <button
           type="button"
@@ -1672,7 +1672,7 @@ function ScoreStepper({
   const score = Math.min(5, Math.max(1, parseInt(value) || 3));
   return (
     <div>
-      <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">{label}</span>
       <div className="soft-card flex flex-col items-center gap-2 rounded-md py-3">
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((d) => (
@@ -1751,7 +1751,7 @@ function ProfileSetupForm({
       ) : null}
 
       <div className="pt-4">
-        <p className="eyebrow mb-4" style={inv ? { color: "white" } : undefined}>Persönliches Profil</p>
+        <p className={`mb-4 text-[0.82rem] font-medium leading-[1.2] ${inv ? "text-white" : "text-[var(--espresso-50)]"}`}>Persönliches Profil</p>
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <Input inverted={inv} label="Wunschgewicht kg" type="number" value={goalForm.target_weight} onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })} />
@@ -1785,7 +1785,7 @@ function PreviewMetric({ label, value, inverted }: { label: string; value: numbe
   return (
     <div>
       <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
-      <p className={`text-sm font-bold tracking-[0.02em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
+      <p className={`text-sm font-medium ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1805,7 +1805,7 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-medium ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)} className={inverted ? "field-inv" : "field"}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -1831,7 +1831,7 @@ function Input({
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-medium ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <input value={value} onChange={(event) => { playType(); onChange(event.target.value); }} className={inverted ? "field-inv" : "field"} {...props} />
     </label>
   );
@@ -1861,7 +1861,7 @@ function TrainingPicker({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Sport</span>
+        <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Sport</span>
         <select value={activity || "yoga"} onChange={(e) => update(e.target.value, duration)} className="field">
           {TRAINING_ACTIVITIES.map((a) => (
             <option key={a.value} value={a.value}>{a.label}</option>
@@ -1869,7 +1869,7 @@ function TrainingPicker({
         </select>
       </label>
       <div>
-        <span className="mb-2 block text-sm font-bold text-[var(--espresso-50)]">Dauer</span>
+        <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Dauer</span>
         <div className="soft-card flex items-center justify-between rounded-md p-1">
           <button
             type="button"
@@ -1892,7 +1892,7 @@ function TrainingPicker({
         </div>
       </div>
       <div className="soft-card flex items-center justify-between p-3">
-        <span className="text-sm font-bold text-[var(--espresso-50)]">Geschätzt verbrannt</span>
+        <span className="text-sm font-medium text-[var(--espresso-50)]">Geschätzt verbrannt</span>
         <span className="serif text-2xl text-[var(--coral)]">≈ {kcal} kcal</span>
       </div>
     </div>
@@ -1901,7 +1901,7 @@ function TrainingPicker({
 
 function ToggleRow({ label, checked, onChange, inverted }: { label: string; checked: boolean; onChange: (checked: boolean) => void; inverted?: boolean }) {
   return (
-    <label className={`flex items-center justify-between p-3 text-sm font-black rounded-lg ${inverted ? "bg-white/15 text-white" : "soft-card text-[var(--espresso)]"}`}>
+    <label className={`flex items-center justify-between rounded-lg p-3 text-sm font-medium ${inverted ? "bg-white/15 text-white" : "soft-card text-[var(--espresso)]"}`}>
       {label}
       <span
         className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${
@@ -1955,7 +1955,7 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   const valueSize = formatted.length >= 5 ? "text-[1.25rem]" : "text-[1.55rem]";
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">{label}</p>
+      <p className="text-sm font-medium text-[var(--espresso-50)]">{label}</p>
       <p className={`serif mt-2 whitespace-nowrap leading-[1.05] tracking-[-0.035em] text-[var(--coral)] ${valueSize}`}>
         {formatted} g
       </p>
@@ -1973,7 +1973,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
     return (
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+          <span className="text-sm font-medium text-[var(--espresso-50)]">Menge</span>
           <button type="button" onClick={() => setUnit("g")} className="text-sm font-bold text-[var(--coral)]">in Gramm →</button>
         </div>
         <div className="soft-card flex items-center justify-between rounded-md p-2">
@@ -1999,7 +1999,7 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-bold text-[var(--espresso-50)]">Menge</span>
+        <span className="text-sm font-medium text-[var(--espresso-50)]">Menge</span>
         {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-sm font-bold text-[var(--coral)]">in Stück →</button>}
       </div>
       <div className="soft-card flex items-center justify-between rounded-md p-2">
@@ -2092,7 +2092,7 @@ function FoodSearch({
             {jenFoods.length > 0 && (
               <>
                 {showBoth && (
-                  <div className="bg-[rgba(241,231,214,0.7)] px-4 py-2 text-xs font-black tracking-[0.02em] text-[var(--espresso-50)]">
+                  <div className="bg-[rgba(241,231,214,0.7)] px-4 py-2 text-xs font-medium text-[var(--espresso-50)]">
                     Jens Lebensmittel
                   </div>
                 )}
@@ -2110,7 +2110,7 @@ function FoodSearch({
             {apiResults.length > 0 && (
               <>
                 {showBoth && (
-                  <div className="bg-[rgba(52,40,32,0.04)] px-4 py-2 text-xs font-black tracking-[0.02em] text-[var(--espresso-50)]">
+                  <div className="bg-[rgba(52,40,32,0.04)] px-4 py-2 text-xs font-medium text-[var(--espresso-50)]">
                     Datenbank
                   </div>
                 )}
@@ -2139,7 +2139,7 @@ function FoodItem({ food, onSelect, onFavorite, isFavorite }: { food: FoodResult
         className="pressable flex min-w-0 flex-1 items-start justify-between gap-3 px-4 py-3 text-left hover:bg-[rgba(240,107,93,0.05)]"
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-[var(--espresso)]">{food.name}</p>
+          <p className="truncate text-sm font-medium text-[var(--espresso)]">{food.name}</p>
           {food.brand ? <p className="truncate text-sm text-[var(--espresso-50)]">{food.brand}</p> : null}
         </div>
         <div className="shrink-0 text-right">
@@ -2164,7 +2164,7 @@ function WaterStatus({ water }: { water: string }) {
   const liters = parseFloat(water) || 0;
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Wasser</p>
+      <p className="text-sm font-medium text-[var(--espresso-50)]">Wasser</p>
       <p className="serif mt-2 text-2xl text-[var(--espresso)]">{liters > 0 ? `${liters} l` : "—"}</p>
       <p className="text-sm text-[var(--espresso-50)]">getrunken</p>
     </div>
@@ -2178,7 +2178,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   if (values.length === 0) {
     return (
       <div className="soft-card p-3">
-        <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Körpergefühl</p>
+        <p className="text-sm font-medium text-[var(--espresso-50)]">Körpergefühl</p>
         <p className="serif mt-2 text-2xl text-[var(--espresso)]">—</p>
         <p className="text-sm text-[var(--espresso-50)]">Check-In ausfüllen</p>
       </div>
@@ -2188,7 +2188,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   const dots = Array.from({ length: 5 }, (_, i) => i + 1);
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Körpergefühl</p>
+      <p className="text-sm font-medium text-[var(--espresso-50)]">Körpergefühl</p>
       <div className="mt-2 flex gap-1">
         {dots.map((d) => (
           <span
@@ -2217,7 +2217,7 @@ function TextArea({
 }) {
   return (
     <label className="block">
-      <span className={`mb-2 block text-sm font-bold ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
+      <span className={`mb-2 block text-sm font-medium ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</span>
       <textarea
         value={value}
         onChange={(event) => { playType(); onChange(event.target.value); }}

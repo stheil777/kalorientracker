@@ -114,5 +114,10 @@ export type FoodResult = {
     fat: number;
   };
   stueck_g?: number;
+  measure_unit?: "g" | "ml";
+  portions?: Array<{
+    label: string;
+    amount: number;
+  }>;
   source: "off" | "usda" | "jen";
 };

@@ -98,6 +98,13 @@ export const JEN_FOODS: FoodResult[] = [
   { id: "jen-zitrone", name: "Zitrone", per100g: { calories: 29, protein: 1, carbs: 9, fat: 0 }, stueck_g: 80, source: "jen" },
   { id: "jen-limette", name: "Limette", per100g: { calories: 30, protein: 1, carbs: 11, fat: 0 }, stueck_g: 60, source: "jen" },
 
+  // Getränke – Alkohol
+  { id: "jen-wein", name: "Wein", per100g: { calories: 83, protein: 0, carbs: 3, fat: 0 }, measure_unit: "ml", portions: [{ label: "Glas", amount: 150 }, { label: "Flasche", amount: 750 }], source: "jen" },
+  { id: "jen-sekt", name: "Sekt", per100g: { calories: 75, protein: 0, carbs: 3, fat: 0 }, measure_unit: "ml", portions: [{ label: "Glas", amount: 100 }, { label: "Flasche", amount: 750 }], source: "jen" },
+  { id: "jen-bier", name: "Bier", per100g: { calories: 43, protein: 0, carbs: 4, fat: 0 }, measure_unit: "ml", portions: [{ label: "Glas", amount: 300 }, { label: "Flasche", amount: 500 }], source: "jen" },
+  { id: "jen-spirituose", name: "Spirituose", per100g: { calories: 230, protein: 0, carbs: 0, fat: 0 }, measure_unit: "ml", portions: [{ label: "Glas", amount: 40 }, { label: "Flasche", amount: 700 }], source: "jen" },
+  { id: "jen-cocktail", name: "Cocktail", per100g: { calories: 120, protein: 0, carbs: 15, fat: 0 }, measure_unit: "ml", portions: [{ label: "Glas", amount: 250 }], source: "jen" },
+
   // Sonstiges
   { id: "jen-tomatensauce", name: "Tomatensauce", per100g: { calories: 29, protein: 2, carbs: 6, fat: 0 }, source: "jen" },
   { id: "jen-tomatenmark", name: "Tomatenmark", per100g: { calories: 82, protein: 5, carbs: 18, fat: 1 }, source: "jen" },

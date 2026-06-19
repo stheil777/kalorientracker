@@ -58,6 +58,14 @@ const mealGoalSplit: Record<MealType, number> = {
   snack: 0.10,
 };
 
+type InlineFood = {
+  name: string;
+  per100g: FoodResult["per100g"];
+  stueckG?: number;
+  measureUnit?: FoodResult["measure_unit"];
+  portions?: FoodResult["portions"];
+};
+
 const TRAINING_ACTIVITIES = [
   { value: "yoga", label: "Yoga", met: 3.0 },
   { value: "pilates", label: "Pilates", met: 3.0 },
@@ -71,7 +79,6 @@ const TRAINING_ACTIVITIES = [
   { value: "laufen", label: "Laufen", met: 8.3 },
   { value: "hiit", label: "HIIT", met: 8.0 },
 ];
-
 
 const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
@@ -267,7 +274,7 @@ export default function Home() {
   const [deleting, setDeleting] = useState(false);
   const [activeMealType, setActiveMealType] = useState<MealType | null>(null);
   const [inlineKey, setInlineKey] = useState<string | null>(null);
-  const [inlineFood, setInlineFood] = useState<{ name: string; per100g: FoodResult["per100g"]; stueckG?: number } | null>(null);
+  const [inlineFood, setInlineFood] = useState<InlineFood | null>(null);
   const [inlineGrams, setInlineGrams] = useState(100);
   const [inlineLabel, setInlineLabel] = useState("100 g");
   const [goalForm, setGoalForm] = useState(blankGoals);
@@ -854,13 +861,20 @@ export default function Home() {
     playDelete();
   }
 
-  function openInlineFood(key: string, food: { name: string; per100g: FoodResult["per100g"]; stueckG?: number }, initialGrams?: number) {
+  function openInlineFood(key: string, food: InlineFood, initialGrams?: number) {
     if (inlineKey === key) { setInlineKey(null); setInlineFood(null); return; }
     setInlineKey(key);
     setInlineFood(food);
-    const g = initialGrams ?? food.stueckG ?? 100;
+    const firstPortion = food.portions?.[0];
+    const g = initialGrams ?? firstPortion?.amount ?? food.stueckG ?? 100;
     setInlineGrams(g);
-    setInlineLabel(food.stueckG && initialGrams === undefined ? "1 Stück" : `${g} g`);
+    setInlineLabel(
+      initialGrams === undefined && firstPortion
+        ? `1 ${firstPortion.label}`
+        : food.stueckG && initialGrams === undefined
+          ? "1 Stück"
+          : `${g} ${food.measureUnit ?? "g"}`,
+    );
     if (key.startsWith("search:")) { setFoodFocused(false); setShowFoodResults(false); }
   }
 
@@ -1324,10 +1338,21 @@ export default function Home() {
                           <div key={fav.id}>
                             <div className="flex items-center gap-3 py-3">
                               <button type="button" onClick={() => {
-                                const match = fav.amount.match(/^(\d+(?:\.\d+)?)\s*g/i);
-                                const g = match ? parseFloat(match[1]) : 100;
+                                const sourceFood = JEN_FOODS.find((food) => food.name === fav.name);
+                                const match = fav.amount.match(/^(\d+(?:\.\d+)?)\s*(?:g|ml)/i);
+                                const g = match
+                                  ? parseFloat(match[1])
+                                  : sourceFood?.per100g.calories
+                                    ? (fav.calories / sourceFood.per100g.calories) * 100
+                                    : 100;
                                 const p100 = { calories: (fav.calories / g) * 100, protein: (fav.protein / g) * 100, carbs: (fav.carbs / g) * 100, fat: (fav.fat / g) * 100 };
-                                openInlineFood(key, { name: fav.name, per100g: p100 }, g);
+                                openInlineFood(key, {
+                                  name: fav.name,
+                                  per100g: sourceFood?.per100g ?? p100,
+                                  stueckG: sourceFood?.stueck_g,
+                                  measureUnit: sourceFood?.measure_unit,
+                                  portions: sourceFood?.portions,
+                                }, g);
                               }} className="pressable min-w-0 flex-1 text-left">
                                 <p className="truncate text-sm font-medium text-[var(--espresso)]">{fav.name}</p>
                                 <p className="text-sm text-[var(--espresso-50)]">{fav.amount} · {fav.calories} kcal</p>
@@ -1338,7 +1363,13 @@ export default function Home() {
                             </div>
                             {isOpen && (
                               <div className="pb-4">
-                                <AmountStepper amount={inlineGrams} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                                <AmountStepper
+                                  key={fav.id}
+                                  amount={inlineGrams}
+                                  measureUnit={inlineFood?.measureUnit}
+                                  portions={inlineFood?.portions}
+                                  onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${inlineFood?.measureUnit ?? "g"}`); }}
+                                />
                                 <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
                                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
                                 </button>
@@ -1359,7 +1390,13 @@ export default function Home() {
                       return (
                         <div key={food.name}>
                           <div className="flex items-center gap-1 py-3">
-                            <button type="button" onClick={() => openInlineFood(key, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                            <button type="button" onClick={() => openInlineFood(key, {
+                              name: food.name,
+                              per100g: food.per100g,
+                              stueckG: food.stueck_g,
+                              measureUnit: food.measure_unit,
+                              portions: food.portions,
+                            })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-[var(--espresso)]">{food.name}</p>
                                 <p className="text-sm text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
@@ -1372,7 +1409,14 @@ export default function Home() {
                           </div>
                           {isOpen && (
                             <div className="pb-4">
-                              <AmountStepper amount={inlineGrams} stueckG={food.stueck_g} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                              <AmountStepper
+                                key={food.id}
+                                amount={inlineGrams}
+                                stueckG={food.stueck_g}
+                                measureUnit={food.measure_unit}
+                                portions={food.portions}
+                                onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${food.measure_unit ?? "g"}`); }}
+                              />
                               <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
                                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
                               </button>
@@ -1397,7 +1441,13 @@ export default function Home() {
                       setInlineKey(null);
                       if (value.length < 2) { setFoodResults([]); setShowFoodResults(false); }
                     }}
-                    onSelect={(food) => openInlineFood(`search:${food.name}`, { name: food.name, per100g: food.per100g, stueckG: food.stueck_g })}
+                    onSelect={(food) => openInlineFood(`search:${food.name}`, {
+                      name: food.name,
+                      per100g: food.per100g,
+                      stueckG: food.stueck_g,
+                      measureUnit: food.measure_unit,
+                      portions: food.portions,
+                    })}
                     onFavorite={(food) => toggleFavorite(food.name, food.per100g)}
                     favNames={favNames}
                     onFocus={() => setFoodFocused(true)}
@@ -1411,7 +1461,14 @@ export default function Home() {
                           <Star className={`h-4 w-4 transition-colors ${favNames.has(inlineFood.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                         </button>
                       </div>
-                      <AmountStepper amount={inlineGrams} stueckG={inlineFood.stueckG} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                      <AmountStepper
+                        key={inlineFood.name}
+                        amount={inlineGrams}
+                        stueckG={inlineFood.stueckG}
+                        measureUnit={inlineFood.measureUnit}
+                        portions={inlineFood.portions}
+                        onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${inlineFood.measureUnit ?? "g"}`); }}
+                      />
                       <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
                       </button>
@@ -1426,14 +1483,25 @@ export default function Home() {
                       {(mealsByType[activeMealType] ?? []).map((meal) => {
                         const editKey = `edit:${meal.id}`;
                         const isEditing = inlineKey === editKey;
-                        const match = meal.amount?.match(/^(\d+(?:\.\d+)?)\s*g/i);
-                        const g = match ? parseFloat(match[1]) : 100;
+                        const match = meal.amount?.match(/^(\d+(?:\.\d+)?)\s*(?:g|ml)/i);
+                        const sourceFood = JEN_FOODS.find((food) => food.name === meal.food_name);
+                        const g = match
+                          ? parseFloat(match[1])
+                          : sourceFood?.per100g.calories
+                            ? (meal.calories / sourceFood.per100g.calories) * 100
+                            : 100;
                         const p100 = { calories: (meal.calories / g) * 100, protein: (meal.protein / g) * 100, carbs: (meal.carbs / g) * 100, fat: (meal.fat / g) * 100 };
                         const isFav = favNames.has(meal.food_name);
                         return (
                           <div key={meal.id}>
                             <div className="flex items-center gap-2 px-4 py-3">
-                              <button type="button" onClick={() => openInlineFood(editKey, { name: meal.food_name, per100g: p100 }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                              <button type="button" onClick={() => openInlineFood(editKey, {
+                                name: meal.food_name,
+                                per100g: sourceFood?.per100g ?? p100,
+                                stueckG: sourceFood?.stueck_g,
+                                measureUnit: sourceFood?.measure_unit,
+                                portions: sourceFood?.portions,
+                              }, g)} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-sm font-medium text-white">{meal.food_name}</p>
                                   <p className="text-sm text-white">{meal.amount || "—"}</p>
@@ -1454,7 +1522,13 @@ export default function Home() {
                             </div>
                             {isEditing && (
                               <div className="mx-4 mb-4 rounded-lg bg-white p-4">
-                                <AmountStepper amount={inlineGrams} onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} g`); }} />
+                                <AmountStepper
+                                  key={meal.id}
+                                  amount={inlineGrams}
+                                  measureUnit={inlineFood?.measureUnit}
+                                  portions={inlineFood?.portions}
+                                  onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${inlineFood?.measureUnit ?? "g"}`); }}
+                                />
                                 <button type="button" onClick={() => inlineUpdateMeal(meal.id)} className="mt-3 flex h-11 w-full items-center justify-center rounded-md bg-[var(--coral)] text-sm font-black text-white">
                                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
                                 </button>
@@ -2072,31 +2146,77 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   );
 }
 
-function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange: (g: number, label?: string) => void; stueckG?: number }) {
-  const [unit, setUnit] = useState<"g" | "stueck">(stueckG ? "stueck" : "g");
+function AmountStepper({
+  amount,
+  onChange,
+  stueckG,
+  measureUnit = "g",
+  portions,
+}: {
+  amount: number;
+  onChange: (amount: number, label?: string) => void;
+  stueckG?: number;
+  measureUnit?: "g" | "ml";
+  portions?: FoodResult["portions"];
+}) {
+  const availablePortions = portions ?? (stueckG ? [{ label: "Stück", amount: stueckG }] : []);
+  const [unit, setUnit] = useState<"base" | string>(availablePortions[0]?.label ?? "base");
   const fmt = (n: number) => n % 1 === 0 ? `${n}` : n.toFixed(1);
+  const selectedPortion = availablePortions.find((portion) => portion.label === unit);
 
-  if (unit === "stueck" && stueckG) {
-    const stueck = Math.max(0.5, Math.round((amount / stueckG) * 2) / 2);
+  if (selectedPortion) {
+    const count = Math.max(0.5, Math.round((amount / selectedPortion.amount) * 2) / 2);
     return (
       <div>
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-medium text-[var(--espresso-50)]">Menge</span>
-          <button type="button" onClick={() => setUnit("g")} className="text-sm font-bold text-[var(--coral)]">in Gramm →</button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setUnit("base");
+                onChange(amount, `${amount} ${measureUnit}`);
+              }}
+              className="text-sm font-medium text-[var(--coral)]"
+            >
+              {measureUnit}
+            </button>
+            {availablePortions.map((portion) => (
+              <button
+                key={portion.label}
+                type="button"
+                onClick={() => {
+                  setUnit(portion.label);
+                  onChange(portion.amount, `1 ${portion.label}`);
+                }}
+                className={`text-sm font-medium ${portion.label === unit ? "text-[var(--espresso)]" : "text-[var(--coral)]"}`}
+              >
+                {portion.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="soft-card flex items-center justify-between rounded-md p-2">
           <button
             type="button"
-            onClick={() => { playStepDown(); const n = Math.max(0.5, stueck - 0.5); onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            onClick={() => {
+              playStepDown();
+              const next = Math.max(0.5, count - 0.5);
+              onChange(Math.round(next * selectedPortion.amount), `${fmt(next)} ${selectedPortion.label}`);
+            }}
             className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
           >−</button>
           <div className="text-center">
-            <span className="serif text-4xl text-[var(--espresso)]">{fmt(stueck)}</span>
-            <span className="ml-1.5 text-base text-[var(--espresso-50)]">Stück</span>
+            <span className="serif text-4xl text-[var(--espresso)]">{fmt(count)}</span>
+            <span className="ml-1.5 text-base text-[var(--espresso-50)]">{selectedPortion.label}</span>
           </div>
           <button
             type="button"
-            onClick={() => { playStepUp(); const n = stueck + 0.5; onChange(Math.round(n * stueckG), `${fmt(n)} Stück`); }}
+            onClick={() => {
+              playStepUp();
+              const next = count + 0.5;
+              onChange(Math.round(next * selectedPortion.amount), `${fmt(next)} ${selectedPortion.label}`);
+            }}
             className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
           >+</button>
         </div>
@@ -2106,23 +2226,50 @@ function AmountStepper({ amount, onChange, stueckG }: { amount: number; onChange
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-[var(--espresso-50)]">Menge</span>
-        {stueckG && <button type="button" onClick={() => { setUnit("stueck"); onChange(stueckG, "1 Stück"); }} className="text-sm font-bold text-[var(--coral)]">in Stück →</button>}
+        {availablePortions.length > 0 && (
+          <div className="flex flex-wrap justify-end gap-2">
+            <span className="text-sm font-medium text-[var(--espresso)]">{measureUnit}</span>
+            {availablePortions.map((portion) => (
+              <button
+                key={portion.label}
+                type="button"
+                onClick={() => {
+                  setUnit(portion.label);
+                  onChange(portion.amount, `1 ${portion.label}`);
+                }}
+                className="text-sm font-medium text-[var(--coral)]"
+              >
+                {portion.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="soft-card flex items-center justify-between rounded-md p-2">
         <button
           type="button"
-          onClick={() => { playStepDown(); onChange(Math.max(0, amount - 10)); }}
+          onClick={() => {
+            playStepDown();
+            const step = measureUnit === "ml" ? 50 : 10;
+            const next = Math.max(0, amount - step);
+            onChange(next, `${next} ${measureUnit}`);
+          }}
           className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--espresso-50)] shadow-sm active:bg-[var(--sand)]"
         >−</button>
         <div className="text-center">
           <span className="serif text-4xl text-[var(--espresso)]">{amount}</span>
-          <span className="ml-1.5 text-base text-[var(--espresso-50)]">g</span>
+          <span className="ml-1.5 text-base text-[var(--espresso-50)]">{measureUnit}</span>
         </div>
         <button
           type="button"
-          onClick={() => { playStepUp(); onChange(amount + 10); }}
+          onClick={() => {
+            playStepUp();
+            const step = measureUnit === "ml" ? 50 : 10;
+            const next = amount + step;
+            onChange(next, `${next} ${measureUnit}`);
+          }}
           className="pressable flex size-14 items-center justify-center rounded-xl bg-white text-3xl font-black text-[var(--coral)] shadow-sm active:bg-[var(--sand)]"
         >+</button>
       </div>

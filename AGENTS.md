@@ -52,6 +52,7 @@ Row Level Security ist aktiv -- alle Queries filtern auf `auth.uid()`.
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 USDA_API_KEY=...              # optional, Fallback auf DEMO_KEY
+SUPABASE_SERVICE_ROLE_KEY=... # nur serverseitig, fuer Account-Loeschung
 ```
 
 `.env.local` existiert lokal, `.env.example` ist die Vorlage.

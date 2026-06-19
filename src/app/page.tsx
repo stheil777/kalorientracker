@@ -17,7 +17,6 @@ import {
   Flame,
   Heart,
   Loader2,
-  LogOut,
   Search,
   Settings2,
   Star,
@@ -26,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { formatGermanDate, todayISO } from "@/lib/date";
-import { closeSoundContext, playBell, playClick, playClose, playDelete, playOpen, playSave, playStepDown, playStepUp, playType } from "@/lib/sounds";
+import { closeSoundContext, playBell, playClose, playDelete, playOpen, playSave, playStepDown, playStepUp, playType } from "@/lib/sounds";
 import { JEN_FOODS } from "@/lib/jen-foods";
 import { hasSupabaseConfig, supabase } from "@/lib/supabase";
 import type {
@@ -37,7 +36,6 @@ import type {
   FoodResult,
   GoalType,
   MealEntry,
-  MealFormState,
   MealType,
   Profile,
   Sex,
@@ -75,17 +73,6 @@ const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
   Jen: { calories: 1900, protein: 130, carbs: 190, fat: 60 },
 } as const;
-
-const blankMeal: MealFormState = {
-  meal_type: "breakfast",
-  food_name: "",
-  amount: "",
-  calories: "",
-  protein: "",
-  carbs: "",
-  fat: "",
-  saveFavorite: true,
-};
 
 const blankNote = {
   weight: "",
@@ -180,6 +167,18 @@ function goalsFromProfile(profile: Profile) {
   };
 }
 
+function profileNeedsSetup(profile: Profile) {
+  return !(
+    profile.current_weight &&
+    profile.height_cm &&
+    profile.age &&
+    profile.sex &&
+    profile.activity_level &&
+    profile.goal_type &&
+    profile.diet_type
+  );
+}
+
 function calculateTargets(form: typeof blankGoals) {
   const weight = Number(form.current_weight);
   const height = Number(form.height_cm);
@@ -245,9 +244,7 @@ export default function Home() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
   const [dailyNote, setDailyNote] = useState(blankNote);
-  const [mealForm, setMealForm] = useState<MealFormState>(blankMeal);
   const [checkInOpen, setCheckInOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -279,16 +276,6 @@ export default function Home() {
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
-  const profileNeedsSetup = Boolean(
-    activeProfile &&
-      (!activeProfile.current_weight ||
-        !activeProfile.height_cm ||
-        !activeProfile.age ||
-        !activeProfile.sex ||
-        !activeProfile.activity_level ||
-        !activeProfile.goal_type ||
-        !activeProfile.diet_type),
-  );
 
   const totals = useMemo(
     () =>
@@ -378,13 +365,22 @@ export default function Home() {
           return;
         }
 
-        setProfiles((created ?? []) as Profile[]);
-        setActiveProfileId(created?.[0]?.id ?? "");
+        const createdProfile = created?.[0] as Profile | undefined;
+        setProfiles(createdProfile ? [createdProfile] : []);
+        setActiveProfileId(createdProfile?.id ?? "");
+        if (createdProfile) {
+          setGoalForm(goalsFromProfile(createdProfile));
+          setProfileModalOpen(profileNeedsSetup(createdProfile));
+        }
         return;
       }
 
-      setProfiles(data as Profile[]);
-      setActiveProfileId((current) => current || data[0].id);
+      const loadedProfiles = data as Profile[];
+      const initialProfile = loadedProfiles[0];
+      setProfiles(loadedProfiles);
+      setActiveProfileId((current) => current || initialProfile.id);
+      setGoalForm(goalsFromProfile(initialProfile));
+      setProfileModalOpen(profileNeedsSetup(initialProfile));
     }
 
     loadProfiles();
@@ -404,10 +400,6 @@ export default function Home() {
   }, [saveError]);
 
   useEffect(() => {
-    if (profileNeedsSetup) setProfileModalOpen(true);
-  }, [profileNeedsSetup]);
-
-  useEffect(() => {
     if (foodQuery.length < 2) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -418,11 +410,16 @@ export default function Home() {
           signal: controller.signal,
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
-        const data: FoodResult[] = await res.json();
+        if (!res.ok) throw new Error(`Food search failed with status ${res.status}`);
+        const data: unknown = await res.json();
+        if (!Array.isArray(data)) throw new Error("Food search returned an invalid response");
         setFoodResults(data);
         setShowFoodResults(true);
       } catch (err) {
-        if ((err as Error).name !== "AbortError") setFoodSearching(false);
+        if ((err as Error).name !== "AbortError") {
+          setFoodResults([]);
+          setShowFoodResults(false);
+        }
       } finally {
         setFoodSearching(false);
       }
@@ -637,14 +634,8 @@ export default function Home() {
 
     playSave();
     setSaving(false);
-    setProfileOpen(false);
     setProfileModalOpen(false);
   }
-
-  function selectProfile(profile: Profile) {
-    setActiveProfileId(profile.id);
-    setGoalForm(goalsFromProfile(profile));
-      }
 
   async function saveDailyNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -742,22 +733,6 @@ export default function Home() {
     setSaving(false);
     setInlineKey(null);
     setInlineFood(null);
-  }
-
-  async function quickAddFavForType(fav: FavoriteMeal, mealType: MealType) {
-    if (!supabase || !user || !activeProfile) return;
-    setSaving(true);
-    const { error } = await supabase.from("meal_entries").insert({
-      user_id: user.id, profile_id: activeProfile.id, date, meal_type: mealType,
-      food_name: fav.name, amount: fav.amount, calories: fav.calories,
-      protein: Number(fav.protein), carbs: Number(fav.carbs), fat: Number(fav.fat),
-    });
-    if (error) { setSaveError("Mahlzeit konnte nicht gespeichert werden."); setSaving(false); return; }
-    await refreshDay();
-    playSave();
-    showToast((fav.name.length > 22 ? fav.name.slice(0, 22) + "…" : fav.name) + " hinzugefügt");
-    setSaving(false);
-    setInlineKey(null);
   }
 
   async function deleteAccount() {

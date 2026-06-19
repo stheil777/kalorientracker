@@ -56,6 +56,7 @@ For Vercel, add the same environment variables in Project Settings -> Environmen
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `USDA_API_KEY` (optional — get a free key at api.data.gov; falls back to DEMO_KEY with lower rate limits)
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only — required for account deletion)
 
 ## Features
 

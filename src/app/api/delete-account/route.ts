@@ -26,17 +26,6 @@ export async function POST(req: NextRequest) {
 
   const uid = userData.user.id;
 
-  const tables = ["meal_entries", "daily_notes", "favorite_meals", "profiles"] as const;
-  for (const table of tables) {
-    const { error } = await admin.from(table).delete().eq("user_id", uid);
-    if (error) {
-      return NextResponse.json(
-        { error: `Daten konnten nicht gelöscht werden: ${error.message}` },
-        { status: 500 },
-      );
-    }
-  }
-
   const { error: deleteUserError } = await admin.auth.admin.deleteUser(uid);
   if (deleteUserError) {
     return NextResponse.json(

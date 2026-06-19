@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Lora, Manrope } from "next/font/google";
 import "./globals.css";
 
@@ -17,7 +17,6 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "Kalorientracker",
   description: "Mobile-first calorie and macro tracker for Stephan and Jen.",
-  themeColor: "#f1e7d6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -26,6 +25,10 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f1e7d6",
 };
 
 export default function RootLayout({

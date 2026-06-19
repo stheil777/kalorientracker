@@ -116,13 +116,12 @@ button:disabled {
   100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
 }
 
-.kicker {
+.eyebrow {
   color: var(--espresso-50);
   font-size: 0.82rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   line-height: 1.2;
-  text-transform: uppercase;
 }
 
 .app-card {

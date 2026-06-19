@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Datenschutzerklärung – JEN Kalorientracker",
-  description: "Datenschutzerklärung für den JEN Kalorientracker",
+  title: "Datenschutzerklärung – Jen Kalorientracker",
+  description: "Datenschutzerklärung für den Jen Kalorientracker",
 };
 
 export default function Datenschutz() {

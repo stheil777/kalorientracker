@@ -917,7 +917,7 @@ export default function Home() {
       <main className="app-shell px-5 py-8">
         <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
           <div className="mb-8 reveal-in">
-            <p className="kicker mb-4">Deine Daten. Deine Entscheidung.</p>
+            <p className="eyebrow mb-4">Deine Daten. Deine Entscheidung.</p>
             <h1 className="serif text-[2.8rem] leading-[1.02] text-[var(--espresso)]">
               Gesundheitsdaten bewusst freigeben.
             </h1>
@@ -983,7 +983,7 @@ export default function Home() {
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-[var(--coral)] text-white shadow-[0_18px_36px_rgba(240,107,93,0.24)]">
               <Flame className="h-7 w-7" />
             </div>
-            <p className="kicker mb-4">Von Jen, für dich.</p>
+            <p className="eyebrow mb-4">Von Jen, für dich.</p>
             <h1 className="serif text-[3.15rem] leading-[0.98] text-[var(--espresso)]">Iss was dir gut tut.</h1>
             <p className="mt-5 max-w-sm text-[1.05rem] leading-8 text-[var(--espresso-50)]">
               Dein täglicher Begleiter für bewusstes Essen — mit Leichtigkeit.
@@ -1067,7 +1067,7 @@ export default function Home() {
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pt-12" style={{ paddingBottom: "max(4rem, env(safe-area-inset-bottom))" }}>
         <header className="reveal-in mb-6">
-          <p className="kicker mb-2">{formatGermanDate(date)}</p>
+          <p className="eyebrow mb-2">{formatGermanDate(date)}</p>
           <div className="flex items-center justify-between gap-3">
             <h1 className="serif min-w-0 text-[2.55rem] leading-none text-[var(--espresso)]">
               Hey{" "}<span className="italic text-[var(--coral)] -ml-[0.08em]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
@@ -1175,7 +1175,7 @@ export default function Home() {
             <section className="app-card reveal-in reveal-delay-2 mb-5 p-5">
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
-                  <p className="kicker mb-1">Kalorien übrig</p>
+                  <p className="eyebrow mb-1">Kalorien übrig</p>
                   <p className="serif nums text-[4.85rem] leading-[0.88] tracking-[-0.045em] text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
@@ -1184,7 +1184,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="soft-card px-3 py-2 text-right">
-                  <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">gegessen</p>
+                  <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Gegessen</p>
                   <p className="serif nums text-2xl text-[var(--espresso)]">{totals.calories}</p>
                   <p className="text-sm text-[var(--espresso-50)]">kcal</p>
                 </div>
@@ -1361,7 +1361,7 @@ export default function Home() {
 
                 {(mealsByType[activeMealType] ?? []).length > 0 && (
                   <div className="overflow-hidden rounded-lg" style={{ background: "var(--coral)" }}>
-                    <p className="kicker px-4 pb-2 pt-4" style={{ color: "white" }}>Heute {mealLabels[activeMealType]}</p>
+                    <p className="eyebrow px-4 pb-2 pt-4" style={{ color: "white" }}>Heute {mealLabels[activeMealType]}</p>
                     <div className="divide-y divide-white/20">
                       {(mealsByType[activeMealType] ?? []).map((meal) => {
                         const editKey = `edit:${meal.id}`;
@@ -1416,7 +1416,7 @@ export default function Home() {
       {profileModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--coral)" }}>
           <div className="mx-auto max-w-md px-4 pb-6 pt-12">
-            <p className="mb-2 text-[0.82rem] font-extrabold uppercase leading-[1.2] tracking-[0.08em] text-white">{formatGermanDate(date)}</p>
+            <p className="mb-2 text-[0.82rem] font-extrabold leading-[1.2] tracking-[0.02em] text-white">{formatGermanDate(date)}</p>
             <div className="flex items-center justify-between gap-3">
               <h2 className="serif min-w-0 text-[2.55rem] leading-none text-white">
                 Deine Basis.
@@ -1527,7 +1527,7 @@ function SetupMissing() {
   return (
     <main className="app-shell grid place-items-center px-5">
       <section className="app-card max-w-md p-5">
-        <p className="kicker mb-3">Setup</p>
+        <p className="eyebrow mb-3">Setup</p>
         <h1 className="serif text-3xl text-[var(--espresso)]">Supabase fehlt.</h1>
         <p className="mt-3 leading-7 text-[var(--espresso-50)]">
           Lege eine <code className="rounded bg-white px-1">.env.local</code> mit{" "}
@@ -1751,7 +1751,7 @@ function ProfileSetupForm({
       ) : null}
 
       <div className="pt-4">
-        <p className="kicker mb-4" style={inv ? { color: "white" } : undefined}>Persönliches Profil</p>
+        <p className="eyebrow mb-4" style={inv ? { color: "white" } : undefined}>Persönliches Profil</p>
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <Input inverted={inv} label="Wunschgewicht kg" type="number" value={goalForm.target_weight} onChange={(value) => setGoalForm({ ...goalForm, target_weight: value })} />
@@ -1785,7 +1785,7 @@ function PreviewMetric({ label, value, inverted }: { label: string; value: numbe
   return (
     <div>
       <p className={`serif text-xl ${inverted ? "text-white" : "text-[var(--espresso)]"}`}>{value}</p>
-      <p className={`text-sm font-bold uppercase tracking-[0.06em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
+      <p className={`text-sm font-bold tracking-[0.02em] ${inverted ? "text-white" : "text-[var(--espresso-50)]"}`}>{label}</p>
     </div>
   );
 }
@@ -1955,7 +1955,7 @@ function Macro({ label, value, goal }: { label: string; value: number; goal: num
   const valueSize = formatted.length >= 5 ? "text-[1.25rem]" : "text-[1.55rem]";
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
+      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">{label}</p>
       <p className={`serif mt-2 whitespace-nowrap leading-[1.05] tracking-[-0.035em] text-[var(--coral)] ${valueSize}`}>
         {formatted} g
       </p>
@@ -2092,7 +2092,7 @@ function FoodSearch({
             {jenFoods.length > 0 && (
               <>
                 {showBoth && (
-                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(241,231,214,0.7)]">
+                  <div className="bg-[rgba(241,231,214,0.7)] px-4 py-2 text-xs font-black tracking-[0.02em] text-[var(--espresso-50)]">
                     Jens Lebensmittel
                   </div>
                 )}
@@ -2110,7 +2110,7 @@ function FoodSearch({
             {apiResults.length > 0 && (
               <>
                 {showBoth && (
-                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--espresso-50)] bg-[rgba(52,40,32,0.04)]">
+                  <div className="bg-[rgba(52,40,32,0.04)] px-4 py-2 text-xs font-black tracking-[0.02em] text-[var(--espresso-50)]">
                     Datenbank
                   </div>
                 )}
@@ -2164,7 +2164,7 @@ function WaterStatus({ water }: { water: string }) {
   const liters = parseFloat(water) || 0;
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Wasser</p>
+      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Wasser</p>
       <p className="serif mt-2 text-2xl text-[var(--espresso)]">{liters > 0 ? `${liters} l` : "—"}</p>
       <p className="text-sm text-[var(--espresso-50)]">getrunken</p>
     </div>
@@ -2178,7 +2178,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   if (values.length === 0) {
     return (
       <div className="soft-card p-3">
-        <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+        <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Körpergefühl</p>
         <p className="serif mt-2 text-2xl text-[var(--espresso)]">—</p>
         <p className="text-sm text-[var(--espresso-50)]">Check-In ausfüllen</p>
       </div>
@@ -2188,7 +2188,7 @@ function BodyScore({ energy, mood, satiation }: { energy: string; mood: string; 
   const dots = Array.from({ length: 5 }, (_, i) => i + 1);
   return (
     <div className="soft-card p-3">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">Körpergefühl</p>
+      <p className="text-sm font-bold tracking-[0.02em] text-[var(--espresso-50)]">Körpergefühl</p>
       <div className="mt-2 flex gap-1">
         {dots.map((d) => (
           <span

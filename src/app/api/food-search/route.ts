@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import type { FoodResult } from "@/lib/types";
+
+async function requireUser(req: NextRequest): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return false;
+
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return false;
+
+  const supabase = createClient(url, anonKey);
+  const { data, error } = await supabase.auth.getUser(token);
+  return Boolean(data.user && !error);
+}
 
 async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   try {
@@ -65,8 +80,13 @@ async function searchUSDA(query: string, apiKey: string): Promise<FoodResult[]> 
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await requireUser(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const query = req.nextUrl.searchParams.get("q")?.trim();
   if (!query || query.length < 2) return NextResponse.json([]);
+  if (query.length > 200) return NextResponse.json([]);
 
   const usdaKey = process.env.USDA_API_KEY;
   const [offResults, usdaResults] = await Promise.all([

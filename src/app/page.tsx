@@ -413,7 +413,11 @@ export default function Home() {
     const timer = setTimeout(async () => {
       setFoodSearching(true);
       try {
-        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`, { signal: controller.signal });
+        const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : null;
+        const res = await fetch(`/api/food-search?q=${encodeURIComponent(foodQuery)}`, {
+          signal: controller.signal,
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         const data: FoodResult[] = await res.json();
         setFoodResults(data);
         setShowFoodResults(true);
@@ -759,16 +763,25 @@ export default function Home() {
   async function deleteAccount() {
     if (!supabase || !user) return;
     setDeleting(true);
-    const uid = user.id;
-    const results = await Promise.all([
-      supabase.from("meal_entries").delete().eq("user_id", uid),
-      supabase.from("daily_notes").delete().eq("user_id", uid),
-      supabase.from("favorite_meals").delete().eq("user_id", uid),
-      supabase.from("profiles").delete().eq("user_id", uid),
-    ]);
-    const failed = results.find((r) => r.error);
-    if (failed?.error) {
-      setSaveError("Konto konnte nicht gelöscht werden: " + failed.error.message);
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) {
+      setSaveError("Konto konnte nicht gelöscht werden: keine aktive Sitzung.");
+      setDeleting(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setSaveError("Konto konnte nicht gelöscht werden: " + (body?.error ?? res.statusText));
+        setDeleting(false);
+        return;
+      }
+    } catch {
+      setSaveError("Konto konnte nicht gelöscht werden: Netzwerkfehler.");
       setDeleting(false);
       return;
     }

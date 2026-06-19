@@ -1176,7 +1176,7 @@ export default function Home() {
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
                   <p className="kicker mb-1">Kalorien übrig</p>
-                  <p className="serif nums text-[4.85rem] leading-[0.88] text-[var(--coral)]">
+                  <p className="serif nums text-[4.85rem] leading-[0.88] tracking-[-0.045em] text-[var(--coral)]">
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (
@@ -1951,11 +1951,15 @@ function fmtG(n: number): string {
 
 function Macro({ label, value, goal }: { label: string; value: number; goal: number }) {
   const remaining = Math.max(goal - value, 0);
+  const formatted = fmtG(remaining);
+  const valueSize = formatted.length >= 5 ? "text-[1.25rem]" : "text-[1.55rem]";
   return (
     <div className="soft-card p-3">
       <p className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--espresso-50)]">{label}</p>
-      <p className="serif mt-2 text-3xl leading-none tracking-[-0.02em] text-[var(--coral)]">{fmtG(remaining)} g</p>
-      <p className="text-sm text-[var(--espresso-50)]">von {goal} g</p>
+      <p className={`serif mt-2 whitespace-nowrap leading-[1.05] tracking-[-0.035em] text-[var(--coral)] ${valueSize}`}>
+        {formatted} g
+      </p>
+      <p className="mt-2 text-sm leading-none text-[var(--espresso-50)]">von {goal} g</p>
     </div>
   );
 }

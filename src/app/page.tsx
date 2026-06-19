@@ -1176,7 +1176,10 @@ export default function Home() {
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
                   <p className="mb-1 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">Kalorien übrig</p>
-                  <p className="serif nums text-[4.85rem] leading-[0.88] tracking-[-0.045em] text-[var(--coral)]">
+                  <p
+                    className="serif nums text-[4.85rem] leading-[0.88] text-[var(--coral)]"
+                    style={{ letterSpacing: "-0.085em" }}
+                  >
                     {animatedCaloriesLeft}
                   </p>
                   {Number(dailyNote.training_kcal) > 0 && (

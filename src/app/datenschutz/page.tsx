@@ -29,7 +29,8 @@ export default function Datenschutz() {
             Jennifer Heil<br />
             Wellmicher Straße 88<br />
             56346 St. Goarshausen<br />
-            E-Mail: <a href="mailto:jenheil2108@gmail.com" className="text-[var(--coral)] underline underline-offset-2">jenheil2108@gmail.com</a>
+            E-Mail: <a href="mailto:jenheil2108@gmail.com" className="text-[var(--coral)] underline underline-offset-2">jenheil2108@gmail.com</a><br />
+            Web: <a href="https://jen-myworld.de" target="_blank" rel="noopener noreferrer" className="text-[var(--coral)] underline underline-offset-2">jen-myworld.de</a>
           </address>
         </section>
 

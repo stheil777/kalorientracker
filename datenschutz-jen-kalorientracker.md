@@ -33,7 +33,7 @@ Verantwortliche im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
 Wellmicher Straße 88
 56346 St. Goarshausen
 E-Mail: jenheil2108@gmail.com
-Website: noch nicht vergeben
+Website: https://jen-myworld.de
 
 ---
 

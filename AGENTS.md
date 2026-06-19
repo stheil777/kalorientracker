@@ -34,7 +34,8 @@ src/
     sounds.ts             # UI Sounds
 supabase/
   schema.sql              # Vollstaendiges DB-Schema
-  *.sql                   # Migrations
+  migrations/*.sql        # Neue, mit Supabase CLI ausfuehrbare Migrations
+  *.sql                   # Aeltere manuell ausgefuehrte Migrations
 ```
 
 ## Supabase-Tabellen

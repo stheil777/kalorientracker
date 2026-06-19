@@ -73,14 +73,55 @@ Funktioniert:
 - Tagesnotizen (Gewicht, Training, Wasser, Schlaf, Energie)
 - Dashboard mit Tagesuebersicht
 
+## Uebergabe (Stand 19.06.2026)
+
+Dieses Projekt wurde bisher mit Claude Code gebaut. Du uebernimmst.
+
+### Was gerade fertig geworden ist
+
+- Security-Fixes: Auth auf API-Routes, RLS-Policies gehaertet, Account-Loeschung korrekt (auth.users)
+- Datumsbug gefixt (UTC -> lokal)
+- Datenschutzseite `/datenschutz` ist vollstaendig mit jen-myworld.de als URL
+- Supabase DPA wurde angefragt
+
+### Was NICHT anfassen
+
+- `supabase/schema.sql` nicht aendern ohne Migration-SQL-Datei dazu
+- `.env.local` nie committen
+- Datenschutzseite (`datenschutz/page.tsx`) ist inhaltlich final -- nur Layout-Fixes
+- RLS-Policies in Supabase nicht lockern
+
+### Design-System
+
+Die App nutzt Jens Brand: warme Erdtoene, Coral als Akzent.
+CSS-Variablen sind in `globals.css` definiert (--coral, --espresso, --sand etc.).
+Font: Lora (serif, Headlines) + Manrope (sans, Body).
+Immer mobile-first, grosse Touch-Targets.
+
+### Architektur-Entscheidung
+
+Die gesamte App lebt in EINER Datei: `src/app/page.tsx`.
+Das ist Absicht (MVP, schnelle Iteration). Refactoring in Komponenten ist willkommen,
+aber nur wenn es die Lesbarkeit verbessert -- nicht auf Vorrat.
+
 ## Offene Aufgaben (priorisiert)
 
-1. **Lebensmitteldaten verbessern** - Eigene Bibliothek, bessere Portionsauswahl, Open Food Facts API
-2. **UX verbessern** - Mahlzeit bearbeiten, schnellere Mengensteuerung, Datumswechsel
-3. **Auswertung** - Gewichtsverlauf, Wochenkalorien, Protein-Compliance, Charts
-4. **Coach-Modell** - Rollen (client/coach), Kundenliste fuer Jen, Wochenreports
-5. **Branding** - Auth-Mails anpassen, eigene Domain, Onboarding-Copy
-6. **Rechtliches** - Datenschutz, Impressum, AGB (vor echten Kunden)
+### Sofort (bevor Jen die App nutzt)
+
+1. **Profil-Felder testen** - Nach DB-Migration pruefen ob Profildaten persistent bleiben
+2. **Gesundheitsdaten-Einwilligung** - Beim ersten Login separater Einwilligungstext fuer Art. 9 DSGVO (nicht nur Datenschutz-Checkbox). Eigener Klick fuer Gesundheitsdaten.
+
+### Naechste Features
+
+3. **Lebensmitteldaten verbessern** - Eigene Bibliothek, bessere Portionsauswahl, Open Food Facts API
+4. **UX verbessern** - Mahlzeit bearbeiten, schnellere Mengensteuerung, Datumswechsel
+5. **Auswertung** - Gewichtsverlauf, Wochenkalorien, Protein-Compliance, Charts
+
+### Spaeter (wenn Jen Kundinnen hat)
+
+6. **Coach-Modell** - Rollen (client/coach), Kundenliste fuer Jen, Wochenreports
+7. **Branding** - Auth-Mails anpassen, eigene Domain, Onboarding-Copy
+8. **Rechtliches** - Impressum, AGB (Datenschutz ist fertig)
 
 ## Regeln
 

@@ -1999,8 +1999,11 @@ function TrainingEntriesEditor({
   return (
     <div className="space-y-4">
       <div>
-        <p className="mb-2 text-sm font-medium text-[var(--espresso-50)]">Sport heute</p>
-        {entries.length > 0 ? (
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-[var(--espresso-50)]">Sport heute</p>
+          <p className="text-sm text-[var(--espresso-50)]">ca. {kcal} kcal</p>
+        </div>
+        {entries.length > 0 && (
           <div className="space-y-2">
             {entries.map((entry) => {
               const label = TRAINING_ACTIVITIES.find((item) => item.value === entry.activity)?.label ?? entry.activity;
@@ -2023,8 +2026,6 @@ function TrainingEntriesEditor({
               );
             })}
           </div>
-        ) : (
-          <p className="soft-card p-3 text-sm text-[var(--espresso-50)]">Noch keine Sportart eingetragen.</p>
         )}
       </div>
 
@@ -2032,7 +2033,11 @@ function TrainingEntriesEditor({
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Sportart</span>
-            <select value={activity} onChange={(event) => onActivityChange(event.target.value)} className="field">
+            <select
+              value={activity}
+              onChange={(event) => onActivityChange(event.target.value)}
+              className="field serif text-xl font-normal text-[var(--espresso)]"
+            >
               {TRAINING_ACTIVITIES.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>
               ))}
@@ -2049,7 +2054,7 @@ function TrainingEntriesEditor({
               >
                 −
               </button>
-              <span className="min-w-16 text-center text-sm text-[var(--espresso)]">{durationMin} min</span>
+              <span className="serif min-w-16 text-center text-xl font-normal text-[var(--espresso)]">{durationMin} min</span>
               <button
                 type="button"
                 aria-label="Dauer erhöhen"
@@ -2072,7 +2077,7 @@ function TrainingEntriesEditor({
           ) : (
             <>
               <Plus className="h-4 w-4" />
-              Sportart hinzufügen · ca. {kcal} kcal
+              Sportart hinzufügen
             </>
           )}
         </button>

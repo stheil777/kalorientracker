@@ -2001,7 +2001,7 @@ function TrainingEntriesEditor({
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-[var(--espresso-50)]">Sport heute</p>
-          <p className="text-sm text-[var(--espresso-50)]">ca. {kcal} kcal</p>
+          <p className="text-sm text-[var(--coral)]">ca. {kcal} kcal</p>
         </div>
         {entries.length > 0 && (
           <div className="space-y-2">

@@ -24,6 +24,7 @@ export type Profile = {
   target_weight: number | null;
   training_frequency: number | null;
   cycle_relevant: boolean | null;
+  cycle_start_date: string | null;
   sleep_goal_hours: number | null;
   intolerances: string | null;
   no_go_foods: string | null;
@@ -78,6 +79,9 @@ export type DailyNote = {
   training_activity: string | null;
   training_duration_min: number | null;
   training_kcal: number | null;
+  period_start: boolean;
+  flow: "light" | "medium" | "heavy" | null;
+  symptoms: string[];
   notes: string | null;
 };
 

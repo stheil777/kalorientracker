@@ -80,8 +80,31 @@ const TRAINING_ACTIVITIES = [
   { value: "hiit", label: "HIIT", met: 7.0 },
 ];
 
+const CYCLE_SYMPTOMS = [
+  { id: "cramps", label: "Krämpfe" },
+  { id: "bloating", label: "Blähungen" },
+  { id: "headache", label: "Kopfschmerzen" },
+  { id: "cravings", label: "Heißhunger" },
+  { id: "breast_tenderness", label: "Brustspannen" },
+  { id: "mood_swings", label: "Stimmungsschwankungen" },
+] as const;
+
+const CYCLE_FLOW_OPTIONS = [
+  { value: "light", label: "Leicht" },
+  { value: "medium", label: "Mittel" },
+  { value: "heavy", label: "Stark" },
+] as const;
+
 function calculateTrainingCalories(met: number, weight: number, durationMin: number) {
   return Math.max(0, Math.round((met - 1) * weight * (durationMin / 60)));
+}
+
+function calculateCycleDay(currentDate: string, cycleStartDate: string | null | undefined) {
+  if (!cycleStartDate) return null;
+  const current = Date.parse(`${currentDate}T00:00:00Z`);
+  const start = Date.parse(`${cycleStartDate}T00:00:00Z`);
+  if (!Number.isFinite(current) || !Number.isFinite(start) || current < start) return null;
+  return Math.floor((current - start) / 86_400_000) + 1;
 }
 
 const defaultGoals = {
@@ -107,6 +130,9 @@ const blankNote = {
   satiation: "3",
   mood: "3",
   cravings: "",
+  period_start: false,
+  flow: "" as "" | "light" | "medium" | "heavy",
+  symptoms: [] as string[],
   notes: "",
 };
 
@@ -304,6 +330,9 @@ export default function Home() {
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0];
   const calculatedPreview = calculateTargets(goalForm);
+  const cycleDay = activeProfile?.sex === "female"
+    ? calculateCycleDay(date, dailyNote.period_start ? date : activeProfile.cycle_start_date)
+    : null;
 
   const totals = useMemo(
     () =>
@@ -541,6 +570,9 @@ export default function Home() {
             satiation: note.satiation?.toString() ?? "3",
             mood: note.mood?.toString() ?? "3",
             cravings: note.cravings ?? "",
+            period_start: note.period_start ?? false,
+            flow: note.flow ?? "",
+            symptoms: Array.isArray(note.symptoms) ? note.symptoms.filter((item): item is string => typeof item === "string") : [],
             notes: note.notes ?? "",
           }
         : blankNote,
@@ -795,12 +827,35 @@ export default function Home() {
         satiation: dailyNote.satiation ? Number(dailyNote.satiation) : null,
         mood: dailyNote.mood ? Number(dailyNote.mood) : null,
         cravings: dailyNote.cravings.trim() || null,
+        period_start: dailyNote.period_start,
+        flow: dailyNote.flow || null,
+        symptoms: dailyNote.symptoms,
         notes: dailyNote.notes.trim() || null,
       },
       { onConflict: "user_id,profile_id,date" },
     );
 
     if (noteError) { setSaveError("Check-In konnte nicht gespeichert werden."); setSaving(false); return; }
+
+    if (dailyNote.period_start && activeProfile.cycle_start_date !== date) {
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from("profiles")
+        .update({ cycle_start_date: date })
+        .eq("id", activeProfile.id)
+        .select("*")
+        .single();
+
+      if (profileError) {
+        setSaveError("Der Periodenstart konnte nicht im Profil gespeichert werden.");
+        setSaving(false);
+        return;
+      }
+
+      setProfiles((current) =>
+        current.map((profile) => (profile.id === updatedProfile.id ? (updatedProfile as Profile) : profile)),
+      );
+    }
+
     await refreshDay();
     playSave();
     setCheckInSaved(true);
@@ -1153,7 +1208,15 @@ export default function Home() {
     <main className="app-shell">
       <div className="mx-auto max-w-md px-4 pt-12" style={{ paddingBottom: "max(4rem, env(safe-area-inset-bottom))" }}>
         <header className="reveal-in mb-6">
-          <p className="mb-2 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">{formatGermanDate(date)}</p>
+          <p className="mb-2 flex flex-wrap items-center gap-x-2 text-[0.82rem] font-medium leading-[1.2] text-[var(--espresso-50)]">
+            <span>{formatGermanDate(date)}</span>
+            {activeProfile?.sex === "female" && cycleDay !== null && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>Zyklustag {cycleDay}</span>
+              </>
+            )}
+          </p>
           <div className="flex items-center justify-between gap-3">
             <h1 className="serif min-w-0 text-[2.55rem] leading-none text-[var(--espresso)]">
               Hey{" "}<span className="italic text-[var(--coral)] -ml-[0.08em]">{user?.user_metadata?.first_name || activeProfile?.name}.</span>
@@ -1222,6 +1285,23 @@ export default function Home() {
                     onChange={(v) => setDailyNote({ ...dailyNote, energy_level: v })}
                   />
                 </div>
+                {activeProfile.sex === "female" && (
+                  <CycleTracking
+                    cycleDay={cycleDay}
+                    periodStart={dailyNote.period_start}
+                    flow={dailyNote.flow}
+                    symptoms={dailyNote.symptoms}
+                    onPeriodStartChange={(periodStart) =>
+                      setDailyNote({
+                        ...dailyNote,
+                        period_start: periodStart,
+                        flow: periodStart ? dailyNote.flow : "",
+                      })
+                    }
+                    onFlowChange={(flow) => setDailyNote({ ...dailyNote, flow })}
+                    onSymptomsChange={(symptoms) => setDailyNote({ ...dailyNote, symptoms })}
+                  />
+                )}
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Gelüste</span>
                   <input
@@ -2091,6 +2171,145 @@ function TrainingEntriesEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+function CycleTracking({
+  cycleDay,
+  periodStart,
+  flow,
+  symptoms,
+  onPeriodStartChange,
+  onFlowChange,
+  onSymptomsChange,
+}: {
+  cycleDay: number | null;
+  periodStart: boolean;
+  flow: "" | "light" | "medium" | "heavy";
+  symptoms: string[];
+  onPeriodStartChange: (periodStart: boolean) => void;
+  onFlowChange: (flow: "" | "light" | "medium" | "heavy") => void;
+  onSymptomsChange: (symptoms: string[]) => void;
+}) {
+  const showFlow = periodStart || Boolean(flow);
+
+  function toggleSymptom(symptomId: string) {
+    onSymptomsChange(
+      symptoms.includes(symptomId)
+        ? symptoms.filter((id) => id !== symptomId)
+        : [...symptoms, symptomId],
+    );
+  }
+
+  return (
+    <section className="soft-card space-y-4 rounded-lg p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[rgba(52,40,32,0.08)] pb-3">
+        <p className="text-sm font-medium text-[var(--espresso-50)]">Zyklus</p>
+        {cycleDay !== null && (
+          <p className="text-sm text-[var(--espresso-50)]">
+            Zyklustag <span className="serif ml-1 text-2xl text-[var(--coral)]">{cycleDay}</span>
+          </p>
+        )}
+      </div>
+
+      {cycleDay === null && !periodStart ? (
+        <div className="space-y-3">
+          <p className="text-sm leading-6 text-[var(--espresso-50)]">Noch kein Zyklus erfasst.</p>
+          <button
+            type="button"
+            onClick={() => onPeriodStartChange(true)}
+            className="pressable flex min-h-12 w-full items-center justify-center rounded-md border border-[var(--coral)] px-4 text-sm font-medium text-[var(--coral)]"
+          >
+            Periode heute starten
+          </button>
+        </div>
+      ) : (
+        <>
+          {cycleDay !== null && cycleDay > 45 && (
+            <p className="rounded-md bg-[rgba(240,107,93,0.10)] px-3 py-2 text-sm leading-5 text-[var(--coral-dark)]">
+              Letzter Zyklus vor {cycleDay - 1} Tagen. Vielleicht wurde ein neuer Periodenstart noch nicht erfasst.
+            </p>
+          )}
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-[var(--espresso-50)]">Periodenstart heute?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: true, label: "Ja" },
+                { value: false, label: "Nein" },
+              ].map((option) => {
+                const active = periodStart === option.value;
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => onPeriodStartChange(option.value)}
+                    className={`pressable min-h-12 rounded-md border px-4 text-sm font-medium transition-colors ${
+                      active
+                        ? "border-[var(--coral)] bg-[var(--coral)] text-white"
+                        : "border-[rgba(52,40,32,0.12)] bg-white/70 text-[var(--espresso-50)]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {showFlow && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-[var(--espresso-50)]">Stärke</p>
+          <div className="grid grid-cols-3 gap-2">
+            {CYCLE_FLOW_OPTIONS.map((option) => {
+              const active = flow === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onFlowChange(option.value)}
+                  className={`pressable min-h-12 rounded-md border px-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "border-[var(--coral)] bg-[var(--coral)] text-white"
+                      : "border-[rgba(52,40,32,0.12)] bg-white/70 text-[var(--espresso-50)]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--espresso-50)]">Symptome</p>
+        <div className="flex flex-wrap gap-2">
+          {CYCLE_SYMPTOMS.map((symptom) => {
+            const active = symptoms.includes(symptom.id);
+            return (
+              <button
+                key={symptom.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleSymptom(symptom.id)}
+                className={`pressable min-h-11 rounded-full border px-4 text-sm transition-colors ${
+                  active
+                    ? "border-[var(--coral)] bg-[var(--coral)] text-white"
+                    : "border-[rgba(52,40,32,0.12)] bg-white/70 text-[var(--espresso-50)]"
+                }`}
+              >
+                {symptom.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }
 

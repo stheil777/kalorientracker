@@ -2033,15 +2033,19 @@ function TrainingEntriesEditor({
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Sportart</span>
-            <select
-              value={activity}
-              onChange={(event) => onActivityChange(event.target.value)}
-              className="field serif text-xl font-normal text-[var(--espresso)]"
-            >
-              {TRAINING_ACTIVITIES.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={activity}
+                onChange={(event) => onActivityChange(event.target.value)}
+                className="field serif appearance-none pr-12 text-xl text-[var(--espresso)]"
+                style={{ fontWeight: 400 }}
+              >
+                {TRAINING_ACTIVITIES.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--espresso-50)]" />
+            </div>
           </label>
           <div>
             <span className="mb-2 block text-sm font-medium text-[var(--espresso-50)]">Dauer</span>

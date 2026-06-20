@@ -67,18 +67,22 @@ type InlineFood = {
 };
 
 const TRAINING_ACTIVITIES = [
-  { value: "yoga", label: "Yoga", met: 3.0 },
-  { value: "pilates", label: "Pilates", met: 3.0 },
+  { value: "yoga", label: "Yoga", met: 2.3 },
+  { value: "pilates", label: "Pilates", met: 2.8 },
   { value: "spaziergang", label: "Spaziergang", met: 3.0 },
   { value: "tanzen", label: "Tanzen", met: 4.5 },
-  { value: "wandern", label: "Wandern", met: 5.3 },
-  { value: "radfahren", label: "Radfahren", met: 6.8 },
-  { value: "schwimmen", label: "Schwimmen", met: 6.0 },
-  { value: "krafttraining", label: "Krafttraining", met: 5.0 },
-  { value: "bauch", label: "Bauchtraining", met: 4.0 },
-  { value: "laufen", label: "Laufen", met: 8.3 },
-  { value: "hiit", label: "HIIT", met: 8.0 },
+  { value: "wandern", label: "Wandern", met: 3.8 },
+  { value: "radfahren", label: "Radfahren", met: 4.3 },
+  { value: "schwimmen", label: "Schwimmen", met: 5.8 },
+  { value: "krafttraining", label: "Krafttraining", met: 3.5 },
+  { value: "bauch", label: "Bauchtraining", met: 2.8 },
+  { value: "laufen", label: "Laufen", met: 7.5 },
+  { value: "hiit", label: "HIIT", met: 7.0 },
 ];
+
+function calculateTrainingCalories(met: number, weight: number, durationMin: number) {
+  return Math.max(0, Math.round((met - 1) * weight * (durationMin / 60)));
+}
 
 const defaultGoals = {
   Stephan: { calories: 2400, protein: 180, carbs: 240, fat: 75 },
@@ -819,7 +823,7 @@ export default function Home() {
     const duration = Math.max(5, Number(trainingDraft.duration) || 30);
     const activity = TRAINING_ACTIVITIES.find((item) => item.value === trainingDraft.activity) ?? TRAINING_ACTIVITIES[0];
     const weight = Number(dailyNote.weight) || activeProfile.current_weight || 65;
-    const calories = Math.round(activity.met * weight * (duration / 60));
+    const calories = calculateTrainingCalories(activity.met, weight, duration);
 
     setTrainingSaving(true);
     const { data, error } = await supabase
@@ -1994,7 +1998,7 @@ function TrainingEntriesEditor({
 }) {
   const met = TRAINING_ACTIVITIES.find((a) => a.value === activity)?.met ?? 5.0;
   const durationMin = Math.max(5, parseInt(duration) || 30);
-  const kcal = Math.round(met * weight * (durationMin / 60));
+  const kcal = calculateTrainingCalories(met, weight, durationMin);
 
   return (
     <div className="space-y-4">

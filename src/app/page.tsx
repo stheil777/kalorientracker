@@ -2364,8 +2364,7 @@ function fmtG(n: number): string {
 }
 
 function Macro({ label, value, goal }: { label: string; value: number; goal: number }) {
-  const remaining = Math.max(goal - value, 0);
-  const formatted = fmtG(remaining);
+  const formatted = fmtG(value);
   const valueSize = formatted.length >= 5 ? "text-[1.25rem]" : "text-[1.55rem]";
   return (
     <div className="soft-card p-3">

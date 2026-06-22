@@ -299,6 +299,7 @@ export default function Home() {
   const [trainingDraft, setTrainingDraft] = useState({ activity: "spaziergang", duration: "30" });
   const [trainingSaving, setTrainingSaving] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [jenFoodsOpen, setJenFoodsOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -940,6 +941,7 @@ export default function Home() {
   async function inlineAddMeal() {
     if (!supabase || !user || !activeProfile || !inlineFood || !activeMealType) return;
     const addedName = inlineFood.name;
+    const addedFromJenFoods = inlineKey?.startsWith("jen:") ?? false;
     setSaving(true);
     const f = inlineGrams / 100;
     const { error } = await supabase.from("meal_entries").insert({
@@ -958,6 +960,7 @@ export default function Home() {
     setInlineKey(null);
     setInlineFood(null);
     setFoodQuery(""); setFoodResults([]); setShowFoodResults(false); setFoodFocused(false);
+    if (addedFromJenFoods) setJenFoodsOpen(false);
   }
 
   async function inlineUpdateMeal(mealId: string) {
@@ -1371,7 +1374,14 @@ export default function Home() {
                   <button
                     key={type}
                     type="button"
-                    onClick={() => { setActiveMealType(isActive ? null : type); setInlineKey(null); setInlineFood(null); setFoodQuery(""); setFoodResults([]); }}
+                    onClick={() => {
+                      setActiveMealType(isActive ? null : type);
+                      setInlineKey(null);
+                      setInlineFood(null);
+                      setFoodQuery("");
+                      setFoodResults([]);
+                      setJenFoodsOpen(false);
+                    }}
                     className="pressable relative flex flex-col items-start overflow-hidden rounded-lg px-4 pb-10 pt-4 text-left transition-colors"
                     style={
                       isActive
@@ -1466,49 +1476,76 @@ export default function Home() {
                   )}
                 </AccordionSection>
 
-                <AccordionSection title="Jens Lebensmittel" icon={<Utensils />}>
-                  <div className="divide-y divide-[var(--espresso-14)]">
-                    {[...JEN_FOODS].sort((a, b) => a.name.localeCompare(b.name, "de")).map((food) => {
-                      const key = `jen:${food.name}`;
-                      const isOpen = inlineKey === key;
-                      return (
-                        <div key={food.name}>
-                          <div className="flex items-center gap-1 py-3">
-                            <button type="button" onClick={() => openInlineFood(key, {
-                              name: food.name,
-                              per100g: food.per100g,
-                              stueckG: food.stueck_g,
-                              measureUnit: food.measure_unit,
-                              portions: food.portions,
-                            })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-[var(--espresso)]">{food.name}</p>
-                                <p className="text-sm text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
-                              </div>
-                              <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                            </button>
-                            <button type="button" aria-label="Als Favorit speichern" onClick={() => { const open = inlineKey === `jen:${food.name}`; toggleFavorite(food.name, food.per100g, open ? inlineGrams : undefined, open ? inlineLabel : undefined); }} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
-                              <Star className={`h-4 w-4 transition-colors ${favNames.has(food.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
-                            </button>
-                          </div>
-                          {isOpen && (
-                            <div className="pb-4">
-                              <AmountStepper
-                                key={food.id}
-                                amount={inlineGrams}
-                                stueckG={food.stueck_g}
-                                measureUnit={food.measure_unit}
-                                portions={food.portions}
-                                onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${food.measure_unit ?? "g"}`); }}
-                              />
-                              <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
-                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
+                <AccordionSection
+                  title="Jens Lebensmittel"
+                  icon={<Utensils />}
+                  open={jenFoodsOpen}
+                  onOpenChange={(open) => {
+                    setJenFoodsOpen(open);
+                    if (!open && inlineKey?.startsWith("jen:")) {
+                      setInlineKey(null);
+                      setInlineFood(null);
+                    }
+                  }}
+                >
+                  <div className="max-h-[65dvh] overflow-y-auto overscroll-contain">
+                    <div className="divide-y divide-[var(--espresso-14)]">
+                      {[...JEN_FOODS].sort((a, b) => a.name.localeCompare(b.name, "de")).map((food) => {
+                        const key = `jen:${food.name}`;
+                        const isOpen = inlineKey === key;
+                        return (
+                          <div key={food.name}>
+                            <div className="flex items-center gap-1 py-3">
+                              <button type="button" onClick={() => openInlineFood(key, {
+                                name: food.name,
+                                per100g: food.per100g,
+                                stueckG: food.stueck_g,
+                                measureUnit: food.measure_unit,
+                                portions: food.portions,
+                              })} className="pressable flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-[var(--espresso)]">{food.name}</p>
+                                  <p className="text-sm text-[var(--espresso-50)]">{food.per100g.calories} kcal / 100g</p>
+                                </div>
+                                <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--espresso-30,rgba(52,40,32,0.3))] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                              </button>
+                              <button type="button" aria-label="Als Favorit speichern" onClick={() => { const open = inlineKey === `jen:${food.name}`; toggleFavorite(food.name, food.per100g, open ? inlineGrams : undefined, open ? inlineLabel : undefined); }} className="pressable flex h-11 w-11 shrink-0 items-center justify-center">
+                                <Star className={`h-4 w-4 transition-colors ${favNames.has(food.name) ? "fill-[var(--coral)] text-[var(--coral)]" : "text-[var(--espresso-28)]"}`} />
                               </button>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            {isOpen && (
+                              <div className="pb-4">
+                                <AmountStepper
+                                  key={food.id}
+                                  amount={inlineGrams}
+                                  stueckG={food.stueck_g}
+                                  measureUnit={food.measure_unit}
+                                  portions={food.portions}
+                                  onChange={(g, l) => { setInlineGrams(g); setInlineLabel(l ?? `${g} ${food.measure_unit ?? "g"}`); }}
+                                />
+                                <button type="button" onClick={inlineAddMeal} className="coral-button mt-3 flex h-11 w-full items-center justify-center rounded-md text-sm font-black">
+                                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hinzufügen"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="sticky bottom-0 border-t border-[var(--espresso-14)] bg-[rgba(250,247,242,0.96)] pb-1 pt-3 backdrop-blur-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setJenFoodsOpen(false);
+                          setInlineKey(null);
+                          setInlineFood(null);
+                        }}
+                        className="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-[var(--espresso-14)] bg-white/80 px-4 text-sm font-medium text-[var(--espresso-50)]"
+                      >
+                        <ChevronDown className="h-4 w-4 rotate-180" />
+                        Liste schließen
+                      </button>
+                    </div>
                   </div>
                 </AccordionSection>
 
